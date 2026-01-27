@@ -1,7 +1,7 @@
 ## Introduction
 Cette documentation vise à expliquer l'utilisation de chacun des modules python utilisé dans ce projet, leur implication, et la raison de leurs choix.
 
-**Pour rappel, voici la liste des libraires utilisées:**
+**Pour rappel, voici la liste des librairies utilisées:**
 - `pygame`
 - `PyOpenGL`
 - `PyOpenGL_accelerate`
