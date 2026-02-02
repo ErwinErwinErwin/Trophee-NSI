@@ -38,7 +38,7 @@ A rediger
 ## Auteurs
 
 Listez les auteurs et les autrices du projet.
-
+- Erwin
 ## 🔏 License
 
 Ce projet est sous licence GPL-3.0 - voir le fichier [LICENSE](LICENSE) pour plus d'informations
