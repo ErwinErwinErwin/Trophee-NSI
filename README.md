@@ -28,7 +28,7 @@ Pour lancer le programme, il vous suffit d'executer le fichier `./sources/main.p
 **Si vous avez utilisez le script d’installation**\
 - Linux: `source ./.venv/bin/activate && python3 ./sources/main.py`
 
-- Windows `python ./sources/main.py`
+- Windows `.venv\Scripts\python.exe sources\main.py`
 
 
 ## Fabriqué avec
