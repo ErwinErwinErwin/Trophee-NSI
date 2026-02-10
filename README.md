@@ -25,7 +25,7 @@ Pour le bon fonctionnement du programme, plusieurs librairies sont nécessaires,
 ## ▶️ Démarrage 
 Pour lancer le programme, il vous suffit d'executer le fichier `./sources/main.py` avec les [prérequis](#️-pré-requis) installés.
 
-**Si vous avez utilisez le script d’installation**\
+**Si vous avez utilisez le script d’installation**
 - Linux: `source ./.venv/bin/activate && python3 ./sources/main.py`
 
 - Windows `.venv\Scripts\python.exe sources\main.py`
