@@ -113,8 +113,21 @@ def playGame(game: dict, window: pygame.Surface) -> None:
                     keys_to_send[event.key] = False
         
         window_size = window.get_size()
+
+        # On calcule le ratio à appliquer sur le rendu afin de l'adapter à la taille de la fenêtre
+        scale_x = window_size[0] / RENDERING_WIDTH
+        scale_y = window_size[1] / RENDERING_HEIGHT
+        scale = min(scale_x, scale_y)
         
-        mouse["x"], mouse["y"] = pygame.mouse.get_pos()
+        # On convertit la position de la souris sur la fenêtre pour qu'elle s'adapte à la taille du mini-jeu
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        mouse_x -= window_size[0]//2 - RENDERING_WIDTH//2 * scale
+        mouse_x = round(mouse_x / scale)
+        mouse_y -= window_size[1]//2 - RENDERING_HEIGHT//2 * scale
+        mouse_y = round(mouse_y / scale)
+        mouse_x = min(RENDERING_WIDTH-1, max(0, mouse_x))
+        mouse_y = min(RENDERING_HEIGHT-1, max(0, mouse_y))
+        mouse["x"], mouse["y"] = mouse_x, mouse_y
         mouse["click"] = pygame.mouse.get_pressed()[0]
 
         tick(keys=keys_to_send, mouse=mouse)  # On simule le mini-jeu
@@ -130,12 +143,11 @@ def playGame(game: dict, window: pygame.Surface) -> None:
             if game_rendering.get_size() != (RENDERING_WIDTH, RENDERING_HEIGHT):
                 print(f"[Erreur] La taille du rendu graphique du mini-jeu '{CONFIG["name"]}' ne correspond pas à sa configuration")
                 return False
-            window.fill((0, 0, 0))  # On efface la fenêtre avec du noir
+            
+            color = CONFIG.get("background_color", (0, 0, 0))
+            window.fill(color)  # On efface la fenêtre avec la couleur donnée dans la configuration, par défaut du noir
 
             # On adapte le rendu à la taille de la fenêtre en préservant son ratio
-            scale_x = window_size[0] / RENDERING_WIDTH
-            scale_y = window_size[1] / RENDERING_HEIGHT
-            scale = min(scale_x, scale_y)
             game_rendering = pygame.transform.scale_by(game_rendering, scale)
 
             rendering_size = game_rendering.get_size()

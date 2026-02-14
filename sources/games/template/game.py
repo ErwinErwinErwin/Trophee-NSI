@@ -43,6 +43,7 @@ WINDOW_SIZE = (800, 600)
 FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
 x, y = 0, 0  # Coordonnées du joueur
 spx, spy = 0, 0  # Vitesse du joueur
+mouse_pos = {"x": 0, "y": 0}
 falling = 0  # si vaut 0 : au sol, si supérieur à 0 : en l'air
 event_list = []  # Liste des évènements
 init()
@@ -79,7 +80,11 @@ def tick(keys: dict, mouse: dict) -> None:  # Fonction indispensable qui va gér
     :param mouse: Dictionnaire contenant les informations liées à la souris `{'x': int, 'y'; int, 'click': bool}`
     :type mouse: dict
     """
-    global spx, spy, x, y, falling
+    global spx, spy, x, y, falling, mouse_pos
+
+    # Mis à jour de la position de la souris
+
+    mouse_pos["x"], mouse_pos["y"] = mouse["x"], mouse["y"]
 
     # Simulation de la physique (simple) du joueur
 
@@ -125,6 +130,9 @@ def display() -> pygame.Surface:
         surface.blit(player_image, (x-64, y-64))
     else:
         surface.blit(pygame.transform.flip(player_image, True, False), (x-64, y-64))
+    
+    # On ajoute un point rouge à la position de la souris
+    pygame.draw.circle(surface, (255, 0, 0), (mouse_pos["x"], mouse_pos["y"]), 4)
     return surface
 
 
