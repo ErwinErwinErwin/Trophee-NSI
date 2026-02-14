@@ -65,7 +65,7 @@ pygame.display.set_icon(icon)
 
 clock = pygame.time.Clock()  # Pour réguler la vitesse de la boucle principale
 
-def playGame(game: dict, window: pygame.Surface) -> None:
+def playGame(game: dict, window: pygame.Surface) -> bool:
     """
     playGame est une fonction bloquante qui va lancer le jeu passé en paramètre puis gérer tous
     les échanges de données entre ce script et le mini-jeu.
