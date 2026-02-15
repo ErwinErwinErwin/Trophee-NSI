@@ -2,14 +2,14 @@
 Cette documentation vise à expliquer l'utilisation de chacun des modules python utilisé dans ce projet, leur implication, et la raison de leurs choix.
 
 **Pour rappel, voici la liste des librairies utilisées:**
-- `pygame`
+- `pygame-ce`
 - `PyOpenGL`
 - `PyOpenGL_accelerate`
 - `numpy`
 
 ---
-### Pygame
-La librairie Pygame permet initialement de faire de simple jeux/graphiques 2D, avec un système d'event assez complet, le soucis étant que elle ne prend aucunement (ou infiniment peu) en charge le GPU (perte de puissance crucial pour de la simulation physique de grande envergure), ou encore que le model de rendu est en mode "Immediate". 
+### Pygame-ce
+La librairie Pygame-ce (Pygame community edition) est très semblable à la librairie Pygame mais rajoute quelques fonctions utiles. Pygame permet initialement de faire de simple jeux/graphiques 2D, avec un système d'event assez complet, le soucis étant que elle ne prend aucunement (ou infiniment peu) en charge le GPU (perte de puissance crucial pour de la simulation physique de grande envergure), ou encore que le model de rendu est en mode "Immediate". 
 
 **Notes sur le mode "Immediate";**\
 c'est le fait que rien de ce qui est affiché est stocké en mémoire (=> dans le sens, le fait qu'il doit être affiché et comment), vous devez alors redessiner tout à chaque frame, même sans changement.
