@@ -1,5 +1,8 @@
 """
-Voici le script principal du mini-jeu qui doit indispensablement contenir les 4 fonctions suivantes :
+Ce mini-jeu 'template' sert à la fois d'exemple simple et documenté afin de comprendre la structure
+d'un mini-jeu et de base facile à copier-coller afin de créer un nouveau jeu.
+
+Voici le script principal du mini-jeu qui doit indispensablement contenir les 5 fonctions suivantes :
 
   - une fonction 'tick' :
     - Elle réalise toute la simulation du mini-jeu.
@@ -18,7 +21,15 @@ Voici le script principal du mini-jeu qui doit indispensablement contenir les 4 
     - Elle retourne la liste des évènements s'étant produit depuis la dernier appel de la fonction.
     - Un évènement est un dictionnaire contenant au moins la clé 'type' dont la valeur est une chaine de caractères parmi 'pause' et 'exit'.
   
-  - une fonction 'init' qui doit initialiser/réinitialiser le mini-jeu 
+  - une fonction 'init' qui doit initialiser/réinitialiser le mini-jeu.
+  
+  -  une fonction 'load':
+    - Elle est exécutée seulement au 1er lancement du mini-jeu avant toutes les autres.
+    - Elle charge les assets et ne renvoie rien.
+    - Elle doit posséder un paramètre 'utils' de type dictionnaire :
+      - Il permet de récupérer les fonctions utilitaires.
+      - Les clés sont des str correspondant au nom des fonctions et la valeur est la fonction elle-même.
+      - Les fonctions utilitaires se trouvent dans sources/utils.py
 """
 
 # Pour cet exemple je vais coder un jeu de plateforme basique
@@ -26,7 +37,42 @@ Voici le script principal du mini-jeu qui doit indispensablement contenir les 4 
 import pygame
 from os import path
 
-pygame.mixer.init()  # Afin de jouer des sons plus tard
+WINDOW_SIZE = (800, 600)
+FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
+x, y = 0, 0  # Coordonnées du joueur
+spx, spy = 0, 0  # Vitesse du joueur
+mouse_pos = {"x": 0, "y": 0}
+falling = 0  # si vaut 0 : au sol, si supérieur à 0 : en l'air
+event_list = []  # Liste des évènements
+
+# On initie les variables qui vont contenir les assets
+# Préciser le type de la variable est facultatif mais permet à l'éditeur de code de proposer l'auto-complétion
+player_image: pygame.Surface = None
+background: pygame.Surface = None
+jump_sound: pygame.mixer.Sound = None
+
+# On définit les 5 fonctions principales
+
+def load(utils: dict) -> None:
+    """
+    load récupère les fonctions utilitaires et charge les assets.
+    
+    :param utils: Un dictionnaire contenant les fonctions utilitaires définies dans sources/utils.py
+    :type utils: dict[str, function]
+    """
+    global player_image, background, jump_sound
+    
+    assets = {}
+    utils["loadAssetsFolder"](assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
+    
+    player_image = assets["images"]["player.png"]
+    background = assets["images"]["background.png"]
+    jump_sound = assets["sounds"]["jump.mp3"]
+
+    # On adapte la taille des images
+    player_image = pygame.transform.scale(player_image, (128, 128))
+    background = pygame.transform.scale(background, (800, 600))
+
 
 def init() -> None:
     """
@@ -38,38 +84,6 @@ def init() -> None:
     falling = 0
     event_list.clear()
 
-
-WINDOW_SIZE = (800, 600)
-FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
-x, y = 0, 0  # Coordonnées du joueur
-spx, spy = 0, 0  # Vitesse du joueur
-mouse_pos = {"x": 0, "y": 0}
-falling = 0  # si vaut 0 : au sol, si supérieur à 0 : en l'air
-event_list = []  # Liste des évènements
-init()
-
-# Chargement des assets
-
-def loadImage(image_name: str, size: tuple[int] | None = None) -> pygame.Surface:
-    """
-    Charge une image contenue dans `./assets/images` et lève une erreur si celle-ci n'existe pas
-    
-    :param image_name: Nom de l'image avec son format
-    :type image_name: str
-    :param size: Taille de l'image retournée (par défaut la taille de l'image en entrée)
-    :type size: (int, int) | None
-    :return: Une surface correspondant à l'image
-    :rtype: pygame.Surface
-    """
-    img = pygame.image.load(path.join(FOLDER_PATH, "assets", "images", image_name))
-    if size == None:
-        return img
-    return pygame.transform.scale(img, size)
-
-
-player_image = loadImage("player.png", (128, 128))
-background = loadImage("background.png", (800, 600))
-jump_sound = pygame.mixer.Sound(path.join(FOLDER_PATH, "assets", "sounds", "jump.mp3"))
 
 def tick(keys: dict, mouse: dict) -> None:  # Fonction indispensable qui va gérer le déplacement du joueur et l'option pour sortir du jeu dans cet example
     """

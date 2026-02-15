@@ -5,5 +5,7 @@
     "keys": ["K_UP", "K_RIGHT", "K_LEFT", "K_q"],
     "width": 800,
     "height": 600,
-    "background_color": [0, 0, 0]
+    "background_color": [0, 0, 0],
+    "window_min_width": 400,
+    "window_min_height": 320
 }

@@ -2,68 +2,15 @@
 
 import pygame
 from os import scandir, path
-from sys import exit
-from json import load
+import utils
 
-# Lecture des mini-jeux
+# On définit un dictionnaire contenant toutes les fonctions utilitaires pouvant être envoyées aux mini-jeux
 
-def loadGame(folder: str) -> dict:
-    """
-    Docstring for loadGame
-    
-    :param folder: Nom du dossier du mini-jeu
-    :type folder: str
-    :return: Un dictionnaire contenant les 4 fonctions `tick`, `display`, `events` et `init` ainsi que le contenu de config.json
-    :rtype: dict
-    """
-    game = {}
-    # On ouvre le fichier config.json du mini-jeu pour récupérer son contenu
-    with open(path.join(FOLDER_PATH, "games", folder, "config.json"), "r") as f:
-        game["config"] = load(f)
+UTILS = {
+    "loadAssetsFolder": utils.loadAssetsFolder
+}
 
-    # On charge l'arrière-plan affiché dans le menu des mini-jeux
-    game["menu_background"] = pygame.image.load(path.join(FOLDER_PATH, "games", folder, "menu_background.png"))
-    
-    # On importe dynamiquement les fonctions principales du fichier game.py
-    module = __import__(f"games.{folder}.game", fromlist=["tick", "display", "events", "init"])
-    # On stocke les 3 fonctions principales dans le dictionnaire
-    game["tick"] = module.tick
-    game["display"] = module.display
-    game["events"] = module.events
-    game["init"] = module.init
-    return game
-
-
-games: list[dict] = []
-NEEDED_FILES = ("game.py", "config.json", "menu_background.png")  # Fichiers indispensables dans un dossier de mini-jeu
-FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
-print()
-
-for element in scandir(path.join(FOLDER_PATH, "games")):
-    if element.is_dir():
-        # On vérifie que tous les fichiers indispensables existent
-        if all(path.exists(path.join(element.path, needed_file)) for needed_file in NEEDED_FILES):
-            print("[Info] Dossier de mini-jeu détecté :", element.name)
-            games.append(loadGame(element.name))
-        else:
-            print(f"[Erreur] Le dossier '{element.name}' ne contient pas tous les fichiers indispensables")
-            print("[Rappel] les fichiers indispensables sont :", ", ".join(NEEDED_FILES))
-
-if len(games) == 0:
-    print("[Erreur] Aucun jeu n'a été chargé : arrêt du programme")
-    exit()
-
-print("\nChargement des mini-jeux terminé :", len(games), "mini-jeu(x) chargé(s)")
-
-# Création de la fenêtre pygame
-
-window_size = (800, 600)
-window = pygame.display.set_mode(window_size, pygame.RESIZABLE)
-pygame.display.set_caption("Physics.play")
-icon = pygame.image.load(path.join(FOLDER_PATH, "assets", "images", "icon.png"))
-pygame.display.set_icon(icon)
-
-clock = pygame.time.Clock()  # Pour réguler la vitesse de la boucle principale
+# Définition des fonctions
 
 def playGame(game: dict, window: pygame.Surface) -> bool:
     """
@@ -71,7 +18,7 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
     les échanges de données entre ce script et le mini-jeu.
     La fonction s'arrêtera quand le mini-jeu renverra l'évènement de type 'quit' ou quand l'utilisateur fermera la fenêtre.
     
-    :param game: Un dictionnaire contenant les clés 'config', 'menu_background', 'tick', 'display' et 'events'
+    :param game: Un dictionnaire contenant les clés 'config', 'menu_background', 'tick', 'display', 'events', 'init' et 'load'
     :type game: dict
     :param window: La fenêtre sur laquelle va être affiché le mini-jeu
     :type window: pygame.Surface
@@ -89,7 +36,14 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
     display = game["display"]
     events = game["events"]
     init = game["init"]
-
+    load = game["load"]
+    
+    # Si le jeu n'a encore jamais été chargé, on le fait
+    if not game["loaded"]:
+        # On envoie les fonctions utilitaires au mini-jeu
+        load(UTILS.copy())
+        game["loaded"] = True
+    
     init()  # On initialise le mini-jeu
 
     keys_to_send = {key: False for key in KEYS}  # Dictionnaire qui va être envoyé à la fonction tick du mini-jeu
@@ -97,6 +51,7 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
 
     fps = SPEED  # Nombre de rafraichissement de l'écran par seconde, varie de 1 à SPEED
     cooldown_before_render = 0  # Augmente de fps/SPEED à chaque itération de la boucle. L'écran sera actualisé à chaque fois qu'il atteint 1
+    clock = pygame.time.Clock()  # Pour réguler la vitesse d'une boucle
 
     while True:
 
@@ -111,6 +66,15 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
             elif event.type == pygame.KEYUP:  # Une touche a été relachée
                 if event.key in KEYS:
                     keys_to_send[event.key] = False
+            elif event.type == pygame.WINDOWSIZECHANGED:
+                # On empêche de réduire la taille de la fenêtre en dessous du minimum donné par le fichier 'config.json'
+                min_width = CONFIG.get("window_min_width", 360)
+                min_height = CONFIG.get("window_min_height", 200)
+                width, height = event.x, event.y
+                if width < min_width or height < min_height:
+                    width = max(width, min_width)
+                    height = max(height, min_height)
+                    pygame.display.set_mode((width, height), pygame.RESIZABLE)
         
         window_size = window.get_size()
 
@@ -157,9 +121,167 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
         clock.tick(SPEED)  # On limite la boucle à SPEED tours par seconde
 
 
-# Initialisation des variables pour le menu des mini-jeux
-game_idx = 0
+def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
+    """
+    menu est une fonction bloquante qui affichera le menu des mini-jeux et s'occupera des interactions avec l'utilisateur.
+    
+    :param games: Une liste de mini-jeux représentés par un dictionnaire
+    :type games: list[dict]
+    :param window: La fenêtre sur laquelle va être affiché le menu
+    :type window: pygame.Surface
+    :param assets: Les ressources du menu (images et sons)
+    :type assets: dict[str, dict | pygame.Surface | pygame.mixer.Sound]
+    :return: Le jeu sélectionné par l'utilisateur sous forme d'un dictionnaire ou None si l'utilisateur a fermé la fenêtre
+    :rtype: dict | None 
+    """
+    game_idx = 0  # Index du jeu selectionné par rapport à la liste 'games'
+    clock = pygame.time.Clock()  # Pour réguler la vitesse d'une boucle
+    
+    # On récupère les ressources qui nous intéresse pour le menu
+    arrow_right = pygame.transform.scale_by(assets["images"]["arrow.png"], 0.5)
+    arrow_left = pygame.transform.flip(arrow_right, True, False)
+    arrow_size = arrow_right.get_size()
+    
+    while True:
+        
+        click = False
+        
+        # Gestion des évènements de la fenêtre
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:  # L'utilisateur a fermé la fenêtre
+                return None
+            if event.type == pygame.KEYDOWN:  # Une touche a été pressée
+                # Si c'est la touche 'espace' ou 'entrer' alors on retourne le jeu affiché à l'écran
+                if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                    return games[game_idx]
+                if event.key == pygame.K_LEFT:  # Flèche gauche
+                    game_idx = (game_idx - 1) % len(games)
+                elif event.key == pygame.K_RIGHT:  # Fléche droite
+                    game_idx = (game_idx + 1) % len(games)
+            elif event.type == pygame.WINDOWSIZECHANGED:
+                # On empêche de réduire la taille de la fenêtre en dessous de 400x320
+                width, height = event.x, event.y
+                if width < 400 or height < 320:
+                    width = max(width, 400)
+                    height = max(height, 320)
+                    pygame.display.set_mode((width, height), pygame.RESIZABLE)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+                
+        background = games[game_idx]["menu_background"]
+        window_size = window.get_size()
+        mouse_pos = pygame.mouse.get_pos()
+        
+        # On calcule le ratio à appliquer sur l'image de fond afin de l'adapter à la taille de la fenêtre
+        scale_x = window_size[0] / background.width
+        scale_y = window_size[1] / background.height
+        
+        # On prend le plus grand afin d'être sûr de remplir le fond de la fenêtre même si une partie de l'image risque d'être rognée
+        scale = max(scale_x, scale_y)
+        
+        # On calcule la position des flèches et on vérifie les collisions avec la souris
+        arrow_y = window_size[1]//2-arrow_size[1]//2
+        arrow_left_x = 10
+        arrow_right_x = window_size[0] - arrow_size[0] - 10
+        
+        if pygame.Rect(arrow_left_x, arrow_y, *arrow_size).collidepoint(mouse_pos):
+            if click:
+                game_idx = (game_idx - 1) % len(games)
+            arrow_left.set_alpha(245)
+        else:
+            arrow_left.set_alpha(210)
+        
+        if pygame.Rect(arrow_right_x, arrow_y, *arrow_size).collidepoint(mouse_pos):
+            if click:
+                game_idx = (game_idx + 1) % len(games)
+            arrow_right.set_alpha(245)
+        else:
+            arrow_right.set_alpha(210)
+        
+        window.fill((0, 0, 0))  # On efface tout le précédent contenu de la fenêtre
+        
+        background = pygame.transform.scale_by(background, scale)  # On adapte le fond à la taille de la fenêtre en préservant son ratio
+        window.blit(background, (window_size[0]//2-background.width//2, window_size[1]//2-background.height//2))  # On applique le fond en le centrant
+        
+        # On assombrit le fond
+        shadow = pygame.Surface(window_size, pygame.SRCALPHA)
+        shadow.fill((0, 0, 0))
+        shadow.set_alpha(50)  # Très transparent
+        window.blit(shadow, (0, 0))
+        
+        # On ajoute les flèches
+        window.blit(arrow_right, (arrow_right_x, arrow_y))
+        window.blit(arrow_left, (arrow_left_x, arrow_y))
+        
+        pygame.display.flip()  # On actualise la fenêtre
+        clock.tick(30)  # Limite la boucle à 30 itérations par seconde
 
-playGame(games[0], window)
 
-pygame.quit()
+def main() -> None:
+    """
+    La fonction main sert à démarrer tout le projet. Elle s'occupe de charger tous les mini-jeux 
+    puis d'alterner entre le menu des mini-jeux et la phase de jeu.
+    """
+    
+    FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
+
+    # Création de la fenêtre pygame
+    
+    pygame.init()
+    pygame.mixer.init()  # Afin de jouer des sons plus tard
+
+    window_size = (800, 600)
+    window = pygame.display.set_mode(window_size, pygame.RESIZABLE)
+    pygame.display.set_caption("Physics.play")
+    
+    # Chargement des assets
+    
+    assets = {}
+    utils.loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))
+    
+    pygame.display.set_icon(assets["images"]["icon.png"])
+    
+    # Chargement des mini-jeux
+    
+    games: list[dict] = []
+    NEEDED_FILES = ("game.py", "config.json", "menu_background.png")  # Fichiers indispensables dans un dossier de mini-jeu
+    print()
+
+    # On scanne le dossier 'games' et on importe tous les mini-jeux qui remplissent les conditions
+    for element in scandir(path.join(FOLDER_PATH, "games")):
+        if element.is_dir():
+            # On vérifie que tous les fichiers indispensables existent
+            if all(path.exists(path.join(element.path, needed_file)) for needed_file in NEEDED_FILES):
+                print("[Info] Dossier de mini-jeu détecté :", element.name)
+                result = utils.loadGame(element.name, FOLDER_PATH)
+                if result == None:
+                    print(f"[Erreur] Le dossier '{element.name}' n'a pas pu être chargé car il lui manquait des données. Merci de vérifier qu'il ne manque pas des clés au fichier 'config.json' et que le fichier 'game.py' possède les 4 fonctions principales (voir l'exemple 'template').")
+                else:
+                    games.append(result)
+            else:
+                print(f"[Erreur] Le dossier '{element.name}' ne contient pas tous les fichiers indispensables")
+                print("[Rappel] les fichiers indispensables sont :", ", ".join(NEEDED_FILES))
+
+    if len(games) == 0:
+        print("[Erreur] Aucun jeu n'a été chargé : arrêt du programme")
+        return
+
+    print("\nChargement des mini-jeux terminé :", len(games), "mini-jeu(x) chargé(s)")
+
+    while True:
+        
+        user_choice = menu(games, window, assets)  # On demande à l'utilisateur de choisir un mini-jeu
+        if user_choice == None:
+            break
+        
+        status = playGame(user_choice, window)  # On fait tourner le mini-jeu et on récupère le status de sortie
+        if status:
+            break
+    
+    pygame.quit()  # On demande à pygame de tout fermer proprement
+
+
+if __name__ == "__main__":
+    main()
