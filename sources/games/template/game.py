@@ -9,7 +9,7 @@ Voici le script principal du mini-jeu qui doit indispensablement contenir les 5 
     - Elle ne retourne rien.
     - Le nombre d'exécutions de cette fonction par seconde doit être défini par la clé 'simulation_speed' du fichier 'config.json'.
     - Elle doit posséder les paramètres 'keys' et 'mouse' permettant d'obtenir les touches pressées et les informations liées à la souris:
-      - 'keys' est un dictionnaire dont les clés sont des constantes de pygame (K_a, K_b, ..., K_z, K_UP, K_DOWN, etc) et les valeurs des booléens. Toutes les clés désirées du dictionnaire doivent être indiquées dans une liste associée à 'keys' dans 'config.json'
+      - 'keys' est un dictionnaire dont les clés sont des constantes de pygame (K_a, K_b, ..., K_z, K_UP, K_DOWN, etc) et les valeurs des entiers représentant la durée de la pression (0 = pas pressée, 1 = nouvellement pressée, >0 = pressée). Toutes les clés désirées du dictionnaire doivent être indiquées dans une liste associée à 'keys' dans 'config.json'
       - 'mouse' est un dictionnaire possèdant 3 clés-valeurs : {'x': int, 'y': int, 'click': bool}
   
   - une fonction 'display' :
@@ -89,7 +89,7 @@ def tick(keys: dict, mouse: dict) -> None:  # Fonction indispensable qui va gér
     """
     Docstring for tick
     
-    :param keys: Dictionnaire des touches pressées par l'utilisateur. Exemple `{pygame.K_UP: False, pygame.K_LEFT: True, pygame.K_RIGHT: False}`
+    :param keys: Dictionnaire des touches pressées par l'utilisateur. Les valeurs correspondent à la durée de la pression de la touche. Exemple `{pygame.K_UP: 8, pygame.K_LEFT: 0, pygame.K_RIGHT: 1}`
     :type keys: dict
     :param mouse: Dictionnaire contenant les informations liées à la souris `{'x': int, 'y'; int, 'click': bool}`
     :type mouse: dict

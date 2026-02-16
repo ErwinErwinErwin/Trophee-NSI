@@ -46,7 +46,7 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
     
     init()  # On initialise le mini-jeu
 
-    keys_to_send = {key: False for key in KEYS}  # Dictionnaire qui va être envoyé à la fonction tick du mini-jeu
+    keys_to_send = {key: 0 for key in KEYS}  # Dictionnaire qui va être envoyé à la fonction tick du mini-jeu
     mouse = {"x": 0, "y": 0, "click": False}
 
     fps = SPEED  # Nombre de rafraichissement de l'écran par seconde, varie de 1 à SPEED
@@ -55,6 +55,12 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
 
     while True:
 
+        # On incrémente la durée de la pression des touches enfoncées
+
+        for key, value in keys_to_send.items():
+            if value > 0:
+                keys_to_send[key] += 1
+
         # Gestion des évènements de la fenêtre
 
         for event in pygame.event.get():
@@ -62,10 +68,10 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
                 return True
             if event.type == pygame.KEYDOWN:  # Une touche a été pressée
                 if event.key in KEYS:
-                    keys_to_send[event.key] = True
+                    keys_to_send[event.key] = 1
             elif event.type == pygame.KEYUP:  # Une touche a été relachée
                 if event.key in KEYS:
-                    keys_to_send[event.key] = False
+                    keys_to_send[event.key] = 0
             elif event.type == pygame.WINDOWSIZECHANGED:
                 # On empêche de réduire la taille de la fenêtre en dessous du minimum donné par le fichier 'config.json'
                 min_width = CONFIG.get("window_min_width", 360)
