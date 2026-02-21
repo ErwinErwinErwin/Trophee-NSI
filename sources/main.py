@@ -81,19 +81,17 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
                     width = max(width, min_width)
                     height = max(height, min_height)
                     pygame.display.set_mode((width, height), pygame.RESIZABLE)
-        
-        window_size = window.get_size()
 
         # On calcule le ratio à appliquer sur le rendu afin de l'adapter à la taille de la fenêtre
-        scale_x = window_size[0] / RENDERING_WIDTH
-        scale_y = window_size[1] / RENDERING_HEIGHT
+        scale_x = window.width / RENDERING_WIDTH
+        scale_y = window.height / RENDERING_HEIGHT
         scale = min(scale_x, scale_y)
         
         # On convertit la position de la souris sur la fenêtre pour qu'elle s'adapte à la taille du mini-jeu
         mouse_x, mouse_y = pygame.mouse.get_pos()
-        mouse_x -= window_size[0]//2 - RENDERING_WIDTH//2 * scale
+        mouse_x -= window.width//2 - RENDERING_WIDTH//2 * scale
         mouse_x = round(mouse_x / scale)
-        mouse_y -= window_size[1]//2 - RENDERING_HEIGHT//2 * scale
+        mouse_y -= window.height//2 - RENDERING_HEIGHT//2 * scale
         mouse_y = round(mouse_y / scale)
         mouse_x = min(RENDERING_WIDTH-1, max(0, mouse_x))
         mouse_y = min(RENDERING_HEIGHT-1, max(0, mouse_y))
@@ -120,8 +118,7 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
             # On adapte le rendu à la taille de la fenêtre en préservant son ratio
             game_rendering = pygame.transform.scale_by(game_rendering, scale)
 
-            rendering_size = game_rendering.get_size()
-            window.blit(game_rendering, (window_size[0]//2-rendering_size[0]//2, window_size[1]//2-rendering_size[1]//2))  # On applique le rendu en le centrant
+            window.blit(game_rendering, (window.width//2-game_rendering.width//2, window.height//2-game_rendering.height//2))  # On applique le rendu en le centrant
             pygame.display.flip()  # On actualise la fenêtre
             
         clock.tick(SPEED)  # On limite la boucle à SPEED tours par seconde
@@ -148,6 +145,9 @@ def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
     arrow_left = pygame.transform.flip(arrow_right, True, False)
     arrow_size = arrow_right.get_size()
     
+    # On charge les polices
+    font = assets["fonts"]["inter.ttf"]
+        
     while True:
         
         click = False
@@ -175,22 +175,23 @@ def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     click = True
-                
-        background = games[game_idx]["menu_background"]
-        window_size = window.get_size()
+        
+        game = games[game_idx]
+        
+        background = game["menu_background"]
         mouse_pos = pygame.mouse.get_pos()
         
         # On calcule le ratio à appliquer sur l'image de fond afin de l'adapter à la taille de la fenêtre
-        scale_x = window_size[0] / background.width
-        scale_y = window_size[1] / background.height
+        scale_x = window.width / background.width
+        scale_y = window.height / background.height
         
         # On prend le plus grand afin d'être sûr de remplir le fond de la fenêtre même si une partie de l'image risque d'être rognée
         scale = max(scale_x, scale_y)
         
         # On calcule la position des flèches et on vérifie les collisions avec la souris
-        arrow_y = window_size[1]//2-arrow_size[1]//2
+        arrow_y = window.height//2-arrow_size[1]//2
         arrow_left_x = 10
-        arrow_right_x = window_size[0] - arrow_size[0] - 10
+        arrow_right_x = window.width - arrow_size[0] - 10
         
         if pygame.Rect(arrow_left_x, arrow_y, *arrow_size).collidepoint(mouse_pos):
             if click:
@@ -209,10 +210,10 @@ def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
         window.fill((0, 0, 0))  # On efface tout le précédent contenu de la fenêtre
         
         background = pygame.transform.scale_by(background, scale)  # On adapte le fond à la taille de la fenêtre en préservant son ratio
-        window.blit(background, (window_size[0]//2-background.width//2, window_size[1]//2-background.height//2))  # On applique le fond en le centrant
+        window.blit(background, (window.width//2-background.width//2, window.height//2-background.height//2))  # On applique le fond en le centrant
         
         # On assombrit le fond
-        shadow = pygame.Surface(window_size, pygame.SRCALPHA)
+        shadow = pygame.Surface(window.size, pygame.SRCALPHA)
         shadow.fill((0, 0, 0))
         shadow.set_alpha(50)  # Très transparent
         window.blit(shadow, (0, 0))
@@ -220,6 +221,10 @@ def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
         # On ajoute les flèches
         window.blit(arrow_right, (arrow_right_x, arrow_y))
         window.blit(arrow_left, (arrow_left_x, arrow_y))
+        
+        # On ajoute le texte
+        title = font.getFont(window.height//8).render(game["config"]["name"], True, (255, 255, 255))
+        window.blit(title, (window.width//2-title.width//2, min(140, window.height//6)-title.height//2))
         
         pygame.display.flip()  # On actualise la fenêtre
         clock.tick(30)  # Limite la boucle à 30 itérations par seconde
