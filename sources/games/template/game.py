@@ -102,7 +102,12 @@ def tick(keys: dict, mouse: dict) -> None:  # Fonction indispensable qui va gér
 
     # Simulation de la physique (simple) du joueur
 
-    spx += (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * 2  # On fait varier la vitesse x du joueur selon les touches flèche gauche et droite
+    # On fait varier la vitesse x du joueur selon les touches flèche gauche et droite
+    if keys[pygame.K_RIGHT] > 0:
+        spx += 2
+    elif keys[pygame.K_LEFT] > 0:
+        spx -= 2
+    
     spx *= 0.8
     spy += 1.5  # Action de la gravité
     if keys[pygame.K_UP] and falling == 0:
