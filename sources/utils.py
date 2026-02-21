@@ -51,13 +51,49 @@ def loadGame(folder: str, folder_path: str) -> dict | None:
     return game
 
 
+# Définition des class utilisées dans les fonctions utilitaires
+
+class LoadedFont:
+    """
+    LoadedFont représente une police chargée à partir d'un fichier .ttf. 
+    Elle permet de générer facilement un objet pygame.font.Font avec la taille désirée.
+    """
+    
+    def __init__(self, filepath: str) -> None:
+        
+        # On gère les cas d'erreurs
+        if not path.exists(filepath):
+            raise FileNotFoundError
+        
+        self.filepath = filepath
+        self.sizes = {}
+    
+    def getFont(self, size: int) -> pygame.font.Font:
+        """
+        getFont renvoie un objet Font de la taille désirée.
+        
+        :param size: La taille de la police
+        :type size: int
+        :return: La police de la taille désirée
+        :rtype: pygame.font.Font
+        """
+        # Si la taille demandée à déjà été chargée on la renvoie
+        if size in self.sizes:
+            return self.sizes[size]
+        
+        font = pygame.font.Font(self.filepath, size)
+        self.sizes[size] = font
+        return font
+        
+
 # Fonctions utilitaires disponibles pour les mini-jeux
 
 def loadAssetsFolder(assets: dict, folder_path: str) -> None:
     """
-    loadAssetsFolder va scanner récursivement tous les sous dossiers de dossier passé en paramètre et charger toutes les images et les sons qui s'y trouvent.
+    loadAssetsFolder va scanner récursivement tous les sous dossiers de dossier passé en paramètre et charger toutes les images, les sons et les polices qui s'y trouvent.
     
-    :param assets: Le dictionnaire qui va contenir l'arborescence du dossier scanné, les sous dossiers étant des dictionnaires, les images des objets pygame.Surface et les sons des objets pygame.mixer.Sound
+    :param assets: Le dictionnaire qui va contenir l'arborescence du dossier scanné, les sous dossiers étant des dictionnaires, 
+    les images des objets pygame.Surface, les sons des objets pygame.mixer.Sound et les polices des objets pygame.font.Font
     :type assets: dict
     :param folder_path: Chemin du dossier à scanner
     :type folder_path: str
@@ -85,3 +121,8 @@ def loadAssetsFolder(assets: dict, folder_path: str) -> None:
                     assets[element.name] = pygame.mixer.Sound(element.path)
                 except:
                     print(f"[Erreur] Impossible de charger l'image '{element.path}'")
+            elif format == ".ttf":
+                try:
+                    assets[element.name] = LoadedFont(element.path)
+                except:
+                    print(f"[Erreur] Impossible de charger la police '{element.path}'")
