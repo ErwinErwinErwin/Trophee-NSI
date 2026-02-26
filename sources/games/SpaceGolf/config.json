@@ -1,0 +1,11 @@
+{
+    "name": "Space Golf",
+    "description":  "Space Golf est un mini-jeu basé sur la physique des astres. Le principe est de jouer au golf... dans l'espace et avec la Terre à la place de la balle ! Afin d'obtenir une simulation réaliste nous avons utilisé les 1e et 2e lois de Newton.",
+    "simulation_speed": 40,
+    "keys": ["K_ESCAPE"],
+    "width": 1600,
+    "height": 900,
+    "background_color": [0, 0, 0],
+    "window_min_width": 480,
+    "window_min_height": 270
+}
