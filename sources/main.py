@@ -31,6 +31,8 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
     RENDERING_HEIGHT = CONFIG["height"]
     KEYS = [getattr(pygame, key, -1) for key in CONFIG["keys"]]  # On passe d'une liste de str (ex : 'K_a') à une liste de constante de pygame (ex : pygame.K_a)
 
+    pygame.display.set_caption("Physics.play - " + CONFIG["name"])
+
     # On affecte les fonctions principales à des variables pour faciliter leur utilisation
     tick = game["tick"]
     display = game["display"]
@@ -139,6 +141,8 @@ def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
     """
     game_idx = 0  # Index du jeu selectionné par rapport à la liste 'games'
     clock = pygame.time.Clock()  # Pour réguler la vitesse d'une boucle
+
+    pygame.display.set_caption("Physics.play")
     
     # On récupère les ressources qui nous intéresse pour le menu
     arrow_right = pygame.transform.scale_by(assets["images"]["arrow.png"], 0.5)
