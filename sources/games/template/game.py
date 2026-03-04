@@ -85,7 +85,7 @@ def init() -> None:
     event_list.clear()
 
 
-def tick(keys: dict, mouse: dict) -> None:  # Fonction indispensable qui va gérer le déplacement du joueur et l'option pour sortir du jeu dans cet example
+def tick(keys: dict, mouse: dict, fps:float) -> None:  # Fonction indispensable qui va gérer le déplacement du joueur et l'option pour sortir du jeu dans cet example
     """
     Docstring for tick
     
@@ -93,6 +93,8 @@ def tick(keys: dict, mouse: dict) -> None:  # Fonction indispensable qui va gér
     :type keys: dict
     :param mouse: Dictionnaire contenant les informations liées à la souris `{'x': int, 'y'; int, 'click': bool}`
     :type mouse: dict
+    :param fps: Valeur de FPS du jeu, cette valeur est envoyée seulement si la valeur FPS est sur true dans la config du jeu, dans le cas contraire l'argument ne doit pas être présent
+    :type fps: float
     """
     global spx, spy, x, y, falling, mouse_pos
 
