@@ -63,7 +63,7 @@ class SPHSimulation:
         self.smoothing_radius = 30.0 # Le rayon de dégradé
         self.rest_density = 0.00001 # La densité de repo
         self.gas_stiffness = 1000 # La densité du gaz ambient
-        self.viscosity = 0.2 # La viscosité du liquide
+        self.viscosity = 0.5 # La viscosité du liquide
         self.surface_tension = 0.0728 # La tension de surface
         self.damping = 0.995
         
@@ -251,7 +251,7 @@ class SPHSimulation:
 
     def _boundary_handling(self):
         """Prend en charge les collision des particules entre les bords de la simulation"""
-        damping = 0.60
+        damping = 0.05
         border = 10.0
 
         for particle in self.particles:
