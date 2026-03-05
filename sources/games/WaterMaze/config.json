@@ -1,7 +1,7 @@
 {
     "name": "Water Maze",
     "description":  "Water maze et un jeu dans le quel vous devez guider de l'eau à travers un labyrinthe en utilisant des pièces misent à votre disposition. ",
-    "simulation_speed": 40,
+    "simulation_speed": 100,
     "keys": ["K_ESCAPE","FPS"],
     "width": 1600,
     "height": 900,

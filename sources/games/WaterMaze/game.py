@@ -48,7 +48,7 @@ def init() -> None:
     
     event_list.clear()
     # Initialise la simulation avec 150 particules
-    sph_sim = SPHSimulation(width=WINDOW_WIDTH, height=WINDOW_HEIGHT, particle_count=150)
+    sph_sim = SPHSimulation(width=800, height=600, particle_count=150)
 
 
 def tick(keys: dict, mouse: dict, fps:float) -> None:
@@ -77,7 +77,7 @@ def tick(keys: dict, mouse: dict, fps:float) -> None:
         # Add water particle at mouse position for interaction
         world_x = mouse["x"] + cam_x
         world_y = mouse["y"] + cam_y
-        if sph_sim and len(sph_sim.particles) < 500:
+        if sph_sim and (0 < mouse['x'] < sph_sim.width and 0 < mouse['y'] < sph_sim.height):
             sph_sim.add_particle(world_x, world_y)
 
     # Mis à jour de la position de la souris
@@ -92,7 +92,7 @@ def tick(keys: dict, mouse: dict, fps:float) -> None:
     
     # Met à jour la simulation
     if sph_sim:
-        sph_sim.step(dt=1/(fps+1))  # fps timestep
+        sph_sim.step(dt=(1/(fps+1))) # fps timestep
         
     
     i+=1
@@ -106,7 +106,7 @@ def display() -> pygame.Surface:
     :rtype: pygame.Surface
     """
     surface = pygame.Surface(WINDOW_SIZE)
-    surface.fill((255,255,255))
+    surface.fill((100,100,100))
     
     # Dessiner les particules d'eau
     if sph_sim:

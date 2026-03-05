@@ -10,7 +10,7 @@ from random import randint
 class SPHParticle:
     """Représente une particule seul dans la simulation"""
 
-    def __init__(self, x, y, mass=1.0, radius=3.0)-> None:
+    def __init__(self, x, y, mass=1.0, radius=6.0)-> None:
         self.position :pygame.Vector2 = pygame.Vector2(x, y)
         self.velocity :pygame.Vector2 = pygame.Vector2(0, 0)
         self.acceleration :pygame.Vector2 = pygame.Vector2(0, 0)
@@ -18,7 +18,7 @@ class SPHParticle:
         self.radius = radius
         self.density = 1.0
         self.pressure = 0.0
-        self.color = (41, 220, 214)  # Cyan
+        self.color = [41, 220, 214]  # Cyan
 
     def reset_acceleration(self)-> None:
         """Remet l'acceleration à 0"""
@@ -61,8 +61,8 @@ class SPHSimulation:
 
         # Param de la sim
         self.smoothing_radius = 30.0 # Le rayon de dégradé
-        self.rest_density = 0.0001 # La densité de repo
-        self.gas_stiffness = 400 # La densité du gaz ambient
+        self.rest_density = 0.00001 # La densité de repo
+        self.gas_stiffness = 1000 # La densité du gaz ambient
         self.viscosity = 0.2 # La viscosité du liquide
         self.surface_tension = 0.0728 # La tension de surface
         self.damping = 0.995
@@ -190,41 +190,41 @@ class SPHSimulation:
         """Calcule les forces appliquées à chaque particules et les appliquent"""
         h = self.smoothing_radius
 
-        #Remet à 0 le dictionnaire d'optimisation spatiale
-        self.spatial_lookup.clear()
+        
         
         for particle in self.particles:
             pressure_force = pygame.Vector2(0, 0)
             viscosity_force = pygame.Vector2(0, 0)
 
-            
-            for other in self.particles:
-                if particle is other:
-                    continue
+            idx=int(particle.position.x/h),int(particle.position.y/h)
+            for opp in self.operation:
+                for other in self.spatial_lookup.get((idx[0]+opp[0],idx[1]+opp[1]), []):
+                    if particle is other:
+                        continue
 
-                diff = particle.position - other.position
-                distance = diff.length()
+                    diff = particle.position - other.position
+                    distance = diff.length()
 
-                if distance < h and distance > 0.001: #Empêche les particules de rentrer en collision totale
-                    # Pressure force
-                    pressure_component = (
-                        -(other.mass * (particle.pressure + other.pressure) /
-                          (2.0 * other.density)) *
-                        self._kernel_gradient(diff, h)
-                    )
+                    if distance < h and distance > 0.001: #Empêche les particules de rentrer en collision totale
+                        # Pressure force
+                        pressure_component = (
+                            -(other.mass * (particle.pressure + other.pressure) /
+                            (2.0 * other.density)) *
+                            self._kernel_gradient(diff, h)
+                        )
 
-                
-
-                    pressure_force += pressure_component
-
-                    # Viscosity force
-                    velocity_diff = other.velocity - particle.velocity
-                    viscosity_component = (
-                        self.viscosity * other.mass / other.density *
-                        self._kernel(distance, h)
-                    )
-                    viscosity_force += velocity_diff * viscosity_component
                     
+
+                        pressure_force += pressure_component
+
+                        # Viscosity force
+                        velocity_diff = other.velocity - particle.velocity
+                        viscosity_component = (
+                            self.viscosity * other.mass / other.density *
+                            self._kernel(distance, h)
+                        )
+                        viscosity_force += velocity_diff * viscosity_component
+                        
 
 
             particle.apply_force(pressure_force)
@@ -233,7 +233,11 @@ class SPHSimulation:
             particle.update(dt, self.gravity)
             particle.velocity *= self.damping
             
-
+            
+            particle.color[1] = min((255, particle.velocity.length_squared()*0.5))
+        
+        #Remet à 0 le dictionnaire d'optimisation spatiale
+        self.spatial_lookup.clear()
             
     
     def _update_spatial_lookup(self):
@@ -304,6 +308,12 @@ class SPHSimulation:
 
     def draw(self, surface, camera_x, camera_y):
         """Dessine toutes les particules"""
+        
+        #Dessine le fond de la simulation:
+        rect = pygame.Rect(0-camera_x, 0-camera_y, self.width, self.height)
+        pygame.draw.rect(surface, (255,255,255), rect)
+        
+        
         for particle in self.particles:
             particle.draw(surface, camera_x, camera_y)
 
