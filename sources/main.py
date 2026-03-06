@@ -29,6 +29,7 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
     SPEED = CONFIG["simulation_speed"]
     RENDERING_WIDTH = CONFIG["width"]
     RENDERING_HEIGHT = CONFIG["height"]
+    FPS = CONFIG.get("FPS", False)
     KEYS = [getattr(pygame, key, -1) for key in CONFIG["keys"]]  # On passe d'une liste de str (ex : 'K_a') à une liste de constante de pygame (ex : pygame.K_a)
 
     pygame.display.set_caption("Physics.play - " + CONFIG["name"])
@@ -99,8 +100,12 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
         mouse_y = min(RENDERING_HEIGHT-1, max(0, mouse_y))
         mouse["x"], mouse["y"] = mouse_x, mouse_y
         mouse["click"] = pygame.mouse.get_pressed()[0]
-
-        tick(keys=keys_to_send, mouse=mouse)  # On simule le mini-jeu
+        
+        
+        if not FPS:
+            tick(keys=keys_to_send, mouse=mouse)  # On simule le mini-jeu
+        else:
+            tick(keys=keys_to_send, mouse=mouse, fps=clock.get_fps())
 
         for event in events():
             if event["type"] == "quit":  # Le mini-jeu est fini
@@ -124,6 +129,7 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
             pygame.display.flip()  # On actualise la fenêtre
             
         clock.tick(SPEED)  # On limite la boucle à SPEED tours par seconde
+        
 
 
 def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
