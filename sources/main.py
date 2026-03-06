@@ -101,11 +101,11 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
         mouse["x"], mouse["y"] = mouse_x, mouse_y
         mouse["click"] = pygame.mouse.get_pressed()[0]
         
-        
-        if not FPS:
-            tick(keys=keys_to_send, mouse=mouse)  # On simule le mini-jeu
-        else:
+        # On simule le mini-jeu
+        if FPS:
             tick(keys=keys_to_send, mouse=mouse, fps=clock.get_fps())
+        else:
+            tick(keys=keys_to_send, mouse=mouse)
 
         for event in events():
             if event["type"] == "quit":  # Le mini-jeu est fini
