@@ -2,7 +2,7 @@
 
 import pygame
 from os import path
-from games.WaterMaze.sph_water import SPHSimulation
+from .sph_water import SPHSimulation
 
 WINDOW_WIDTH, WINDOW_HEIGHT = WINDOW_SIZE = (1600, 900)
 FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
