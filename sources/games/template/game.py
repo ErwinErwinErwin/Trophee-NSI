@@ -10,7 +10,7 @@ Voici le script principal du mini-jeu qui doit indispensablement contenir les 5 
     - Le nombre d'exécutions de cette fonction par seconde doit être défini par la clé 'simulation_speed' du fichier 'config.json'.
     - Elle doit posséder les paramètres 'keys' et 'mouse' permettant d'obtenir les touches pressées et les informations liées à la souris:
       - 'keys' est un dictionnaire dont les clés sont des constantes de pygame (K_a, K_b, ..., K_z, K_UP, K_DOWN, etc) et les valeurs des entiers représentant la durée de la pression (0 = pas pressée, 1 = nouvellement pressée, >0 = pressée). Toutes les clés désirées du dictionnaire doivent être indiquées dans une liste associée à 'keys' dans 'config.json'
-      - 'mouse' est un dictionnaire possèdant 3 clés-valeurs : {'x': int, 'y': int, 'click': bool}
+      - 'mouse' est un dictionnaire possèdant 3 clés-valeurs : {'x': int, 'y': int, 'click': [int, int, int]}
     - Si 'FPS' est mis à True dans le fichier 'config.json' alors la fonction doit posséder un paramètre fps qui contiendra la vitesse de la boucle de simulation du mini-jeu en tick/s
   
   - une fonction 'display' :
