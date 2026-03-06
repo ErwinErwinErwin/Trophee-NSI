@@ -3,6 +3,7 @@
 import pygame
 from os import path
 from .physics import CelestialBody
+from utils import loadAssetsFolder
 
 WINDOW_WIDTH, WINDOW_HEIGHT = WINDOW_SIZE = (1600, 900)
 FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
@@ -23,17 +24,14 @@ background: pygame.Surface = None
 
 # On définit les 5 fonctions principales
 
-def load(utils: dict) -> None:
+def load() -> None:
     """
-    load récupère les fonctions utilitaires et charge les assets.
-    
-    :param utils: Un dictionnaire contenant les fonctions utilitaires définies dans sources/utils.py
-    :type utils: dict[str, function]
+    La fonction load charge les assets.
     """
     global earth_image, background
     
     assets = {}
-    utils["loadAssetsFolder"](assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
+    loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
     
     earth_image = assets["images"]["earth.png"]
     background = assets["images"]["space.png"]

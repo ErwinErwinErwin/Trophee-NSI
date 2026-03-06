@@ -2,13 +2,7 @@
 
 import pygame
 from os import scandir, path
-import utils
-
-# On définit un dictionnaire contenant toutes les fonctions utilitaires pouvant être envoyées aux mini-jeux
-
-UTILS = {
-    "loadAssetsFolder": utils.loadAssetsFolder
-}
+from utils import loadAssetsFolder, loadGame
 
 # Définition des fonctions
 
@@ -43,8 +37,7 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
     
     # Si le jeu n'a encore jamais été chargé, on le fait
     if not game["loaded"]:
-        # On envoie les fonctions utilitaires au mini-jeu
-        load(UTILS.copy())
+        load()
         game["loaded"] = True
     
     init()  # On initialise le mini-jeu
@@ -271,7 +264,7 @@ def main() -> None:
     # Chargement des assets
     
     assets = {}
-    utils.loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))
+    loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))
     
     pygame.display.set_icon(assets["images"]["icon.png"])
     
@@ -287,7 +280,7 @@ def main() -> None:
             # On vérifie que tous les fichiers indispensables existent
             if all(path.exists(path.join(element.path, needed_file)) for needed_file in NEEDED_FILES):
                 print("[Info] Dossier de mini-jeu détecté :", element.name)
-                result = utils.loadGame(element.name, FOLDER_PATH)
+                result = loadGame(element.name, FOLDER_PATH)
                 if result == None:
                     print(f"[Erreur] Le dossier '{element.name}' n'a pas pu être chargé car il lui manquait des données. Merci de vérifier qu'il ne manque pas des clés au fichier 'config.json' et que le fichier 'game.py' possède les 4 fonctions principales (voir l'exemple 'template').")
                 else:

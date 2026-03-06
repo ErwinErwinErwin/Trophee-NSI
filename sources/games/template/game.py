@@ -27,16 +27,13 @@ Voici le script principal du mini-jeu qui doit indispensablement contenir les 5 
   -  une fonction 'load':
     - Elle est exécutée seulement au 1er lancement du mini-jeu avant toutes les autres.
     - Elle charge les assets et ne renvoie rien.
-    - Elle doit posséder un paramètre 'utils' de type dictionnaire :
-      - Il permet de récupérer les fonctions utilitaires.
-      - Les clés sont des str correspondant au nom des fonctions et la valeur est la fonction elle-même.
-      - Les fonctions utilitaires se trouvent dans sources/utils.py
 """
 
 # Pour cet exemple je vais coder un jeu de plateforme basique
 
 import pygame
 from os import path
+from utils import loadAssetsFolder
 
 WINDOW_SIZE = (800, 600)
 FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
@@ -54,17 +51,14 @@ jump_sound: pygame.mixer.Sound = None
 
 # On définit les 5 fonctions principales
 
-def load(utils: dict) -> None:
+def load() -> None:
     """
-    load récupère les fonctions utilitaires et charge les assets.
-    
-    :param utils: Un dictionnaire contenant les fonctions utilitaires définies dans sources/utils.py
-    :type utils: dict[str, function]
+    load charge les assets.
     """
     global player_image, background, jump_sound
     
     assets = {}
-    utils["loadAssetsFolder"](assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
+    loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
     
     player_image = assets["images"]["player.png"]
     background = assets["images"]["background.png"]
