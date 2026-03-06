@@ -57,7 +57,7 @@ def tick(keys: dict, mouse: dict, fps:float) -> None:
 
     :param keys: Dictionnaire des touches pressées par l'utilisateur. Les valeurs correspondent à la durée de la pression de la touche. Exemple `{pygame.K_UP: 8, pygame.K_LEFT: 0, pygame.K_RIGHT: 1}`
     :type keys: dict
-    :param mouse: Dictionnaire contenant les informations liées à la souris `{'x': int, 'y'; int, 'click': bool}`
+    :param mouse: Dictionnaire contenant les informations liées à la souris `{'x': int, 'y'; int, 'click': list[int, int, int]}`
     :type mouse: dict
     """
     global mouse_pos, cam_x, cam_y, sph_sim, l_fps, i
@@ -70,8 +70,8 @@ def tick(keys: dict, mouse: dict, fps:float) -> None:
     
     
     
-    # Si la souris est cliquée, on compare sa position à la précédente pour faire déplacer la caméra
-    if mouse["click"]:
+    # Si le clic gauche de la souris est pressé, on compare sa position à la précédente pour faire déplacer la caméra
+    if mouse["click"][0] > 0:
         cam_x += mouse_pos["x"] - mouse["x"]
         cam_y += mouse_pos["y"] - mouse["y"]
         # Add water particle at mouse position for interaction

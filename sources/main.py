@@ -50,7 +50,7 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
     init()  # On initialise le mini-jeu
 
     keys_to_send = {key: 0 for key in KEYS}  # Dictionnaire qui va être envoyé à la fonction tick du mini-jeu
-    mouse = {"x": 0, "y": 0, "click": False}
+    mouse = {"x": 0, "y": 0, "click": [0, 0, 0]}
 
     fps = SPEED  # Nombre de rafraichissement de l'écran par seconde, varie de 1 à SPEED
     cooldown_before_render = 0  # Augmente de fps/SPEED à chaque itération de la boucle. L'écran sera actualisé à chaque fois qu'il atteint 1
@@ -63,6 +63,12 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
         for key, value in keys_to_send.items():
             if value > 0:
                 keys_to_send[key] += 1
+
+        # Même chose pour les clics de la souris : gauche, roulette, droit
+
+        for i, clic in enumerate(mouse["click"]):
+            if clic > 0:
+                mouse["click"][i] += 1
 
         # Gestion des évènements de la fenêtre
 
@@ -84,6 +90,12 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
                     width = max(width, min_width)
                     height = max(height, min_height)
                     pygame.display.set_mode((width, height), pygame.RESIZABLE)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if 1 <= event.button <= 3:
+                    mouse["click"][event.button-1] = 1
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if 1 <= event.button <= 3:
+                    mouse["click"][event.button-1] = 0
 
         # On calcule le ratio à appliquer sur le rendu afin de l'adapter à la taille de la fenêtre
         scale_x = window.width / RENDERING_WIDTH
@@ -99,7 +111,6 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
         mouse_x = min(RENDERING_WIDTH-1, max(0, mouse_x))
         mouse_y = min(RENDERING_HEIGHT-1, max(0, mouse_y))
         mouse["x"], mouse["y"] = mouse_x, mouse_y
-        mouse["click"] = pygame.mouse.get_pressed()[0]
         
         # On simule le mini-jeu
         if FPS:
