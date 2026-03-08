@@ -93,7 +93,7 @@ class CelestialBody:
     calcul de la force gravitationelle.
     """
 
-    def __init__(self, x: int, y: int, weight: int):
+    def __init__(self, x: int, y: int, weight: float):
         """
         :param x: Abscisse de l'astre (en m)
         :type x: int
@@ -108,6 +108,13 @@ class CelestialBody:
         self.other_bodies = []
         self.acceleration = Vector()  # Vecteur accélération en m/s^2
         self.speed = Vector()  # Vecteur vitesse en m/s
+    
+    def stop(self) -> None:
+        """
+        Remet à zéro la vitesse et l'accélération de l'astre.
+        """
+        self.acceleration.magnitude = 0
+        self.speed.magnitude = 0
     
     def addInteraction(self, body: Self) -> None:
         self.other_bodies.append(body)
