@@ -93,7 +93,7 @@ def loadAssetsFolder(assets: dict, folder_path: str) -> None:
     loadAssetsFolder va scanner récursivement tous les sous dossiers de dossier passé en paramètre et charger toutes les images, les sons et les polices qui s'y trouvent.
     
     :param assets: Le dictionnaire qui va contenir l'arborescence du dossier scanné, les sous dossiers étant des dictionnaires, 
-    les images des objets pygame.Surface, les sons des objets pygame.mixer.Sound et les polices des objets pygame.font.Font
+    les images des objets pygame.Surface, les sons des objets pygame.mixer.Sound et les polices des objets utils.LoadedFont
     :type assets: dict
     :param folder_path: Chemin du dossier à scanner
     :type folder_path: str
