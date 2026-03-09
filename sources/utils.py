@@ -51,7 +51,7 @@ def loadGame(folder: str, folder_path: str) -> dict | None:
     return game
 
 
-# Définition des class utilisées dans les fonctions utilitaires
+# Définition des class
 
 class LoadedFont:
     """
@@ -84,7 +84,105 @@ class LoadedFont:
         font = pygame.font.Font(self.filepath, size)
         self.sizes[size] = font
         return font
+
+
+class RangeInput:
+    """
+    Cette class permet de facilement créer des entrées numériques avec un bouton à 
+    aggriper et défiler à l'horizontal. La seule méthode à appeler régulièrement est 'tick'.
+    """
+
+    def __init__(self, x: int, y: int, width: int, range: tuple, surface: pygame.Surface, title: str, font: pygame.Font, radius: int, default: float):
+        """
+        :param x: Coté gauche du bouton
+        :type x: int
+        :param y: Haut du bouton
+        :type y: int
+        :param width: Largeur graphique du bouton
+        :type width: int
+        :param range: Les valeurs que peuvent prendre le bouton (minimum, maximum, pas)
+        :type range: tuple[max] | tuple[min, max] | tuple[min, max, pas]
+        :param surface: La surface sur laquelle sera dessinée le bouton
+        :type surface: pygame.Surface
+        :param title: Texte affiché au dessus du bouton, la valeur du bouton peut être intégrée avec {value}
+        :type title: str
+        :param font: Police utilisée pour afficher le titre
+        :type font: pygame.Font
+        :param radius: Taille du rayon du bouton
+        :type radius: int
+        """
+        self.x = x
+        self.y = y
+        self.width = width
+        self.clicked = False
+        self.diff_x = 0
+        self.title = title
+        self.font = font
+        self.step = 1
+        self.minimum = 0
+        self.value = default
+        self.surface = surface
+        self.radius = radius
+        self.is_touching_mouse = False
+        match len(range):
+            case 1:
+                self.maximum = range[0]
+            case 2:
+                self.minimum, self.maximum = range
+            case 3:
+                self.minimum, self.maximum, self.step = range
+            case _:
+                raise ValueError
+        self.range = self.maximum - self.minimum
+    
+    @property
+    def button_x(self) -> int:
+        return round((self.value - self.minimum) * self.width / self.range) + self.x
+    
+    def touchingMouse(self, mouse_pos) -> bool:
+        """
+        touchingMouse retourne True si le bouton touche la souris sinon False.
+
+        :param mouse_pos: Position de la souris
+        :return: True si le bouton touche la souris sinon False
+        :rtype: bool
+        """
+        return (mouse_pos[0] - self.button_x) ** 2 + (mouse_pos[1] - self.y - self.radius) ** 2 <= self.radius ** 2
         
+    def tick(self, mouse_pos: tuple, click_duration: int) -> None:
+        """
+        La fonction tick doit être appelée régulièrement afin que le bouton 
+        soit fonctionnelle pour l'utilisateur.
+
+        :param mouse_pos: Position de la souris
+        :type mouse_pos: tuple[int, int]
+        :param click_duration: Durée du clic de la souris
+        :type click_duration: int
+        """
+        self.is_touching_mouse = self.touchingMouse(mouse_pos)
+        if self.clicked:
+            if click_duration == 0:
+                self.clicked = False
+                return
+            # On calcule la valeur numérique correspondant à la position du bouton
+            self.value = (mouse_pos[0] - self.diff_x - self.x) * self.range / self.width + self.minimum
+            # On arrondit au pas le plus proche
+            self.value = round(self.value / self.step) * self.step
+            # On encadre la valeur par le minimum et le maximum
+            self.value = min(self.maximum, max(self.minimum, self.value))
+        elif click_duration == 1 and self.is_touching_mouse:
+            self.clicked = True
+            self.diff_x = mouse_pos[0] - self.button_x
+
+    def display(self) -> None:
+        """
+        Affiche le bouton avec son titre.
+        """
+        rect = (self.x - self.radius, self.y, self.width + 2 * self.radius, 2 * self.radius)
+        pygame.draw.rect(self.surface, (180, 180, 180), rect, border_radius=self.radius)
+        color = (240, 240, 240) if self.is_touching_mouse or self.clicked else (220, 220, 220)
+        pygame.draw.circle(self.surface, color, (self.button_x, self.y + self.radius), self.radius + 2)
+
 
 # Fonctions utilitaires disponibles pour les mini-jeux
 

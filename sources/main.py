@@ -2,11 +2,11 @@
 
 import pygame
 from os import scandir, path
-from utils import loadAssetsFolder, loadGame
+from utils import loadAssetsFolder, loadGame, RangeInput
 
 # Définition des fonctions
 
-def playGame(game: dict, window: pygame.Surface) -> bool:
+def playGame(game: dict, window: pygame.Surface, assets: dict) -> bool:
     """
     playGame est une fonction bloquante qui va lancer le jeu passé en paramètre puis gérer tous
     les échanges de données entre ce script et le mini-jeu.
@@ -16,6 +16,8 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
     :type game: dict
     :param window: La fenêtre sur laquelle va être affiché le mini-jeu
     :type window: pygame.Surface
+    :param assets: Les ressources du menu (images, sons et polices)
+    :type assets: dict[str, dict | pygame.Surface | pygame.mixer.Sound]
     :return: True si l'utilisateur a fermé la fenêtre sinon False
     :rtype: bool
     """
@@ -48,6 +50,10 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
     fps = SPEED  # Nombre de rafraichissement de l'écran par seconde, varie de 1 à SPEED
     cooldown_before_render = 0  # Augmente de fps/SPEED à chaque itération de la boucle. L'écran sera actualisé à chaque fois qu'il atteint 1
     clock = pygame.time.Clock()  # Pour réguler la vitesse d'une boucle
+
+    # On créé une entrée numérique pour que l'utilisateur puisque gérer ses FPS sur n'importe quel jeu
+    font = assets["fonts"]["inter.ttf"].getFont(20)
+    fps_input = RangeInput(20, 20, 160, (1, SPEED), window, "FPS: {value}", font, 10, SPEED)
 
     while True:
 
@@ -96,7 +102,8 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
         scale = min(scale_x, scale_y)
         
         # On convertit la position de la souris sur la fenêtre pour qu'elle s'adapte à la taille du mini-jeu
-        mouse_x, mouse_y = pygame.mouse.get_pos()
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_x, mouse_y, = mouse_pos
         mouse_x -= window.width//2 - RENDERING_WIDTH//2 * scale
         mouse_x = round(mouse_x / scale)
         mouse_y -= window.height//2 - RENDERING_HEIGHT//2 * scale
@@ -104,12 +111,19 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
         mouse_x = min(RENDERING_WIDTH-1, max(0, mouse_x))
         mouse_y = min(RENDERING_HEIGHT-1, max(0, mouse_y))
         mouse["x"], mouse["y"] = mouse_x, mouse_y
+
+        # On simule les boutons
+        fps_input.tick(mouse_pos, mouse["click"][0])
+        fps = fps_input.value
         
         # On simule le mini-jeu
+        mouse_sent = {"x": mouse["x"], "y": mouse["y"], "click": mouse["click"].copy()}
+        if fps_input.clicked:  # Si le bouton est cliqué, on n'envoie pas le clic au mini-jeu
+            mouse_sent["click"][0] = 0
         if FPS:
-            tick(keys=keys_to_send, mouse=mouse, fps=clock.get_fps())
+            tick(keys=keys_to_send, mouse=mouse_sent, fps=clock.get_fps())
         else:
-            tick(keys=keys_to_send, mouse=mouse)
+            tick(keys=keys_to_send, mouse=mouse_sent)
 
         for event in events():
             if event["type"] == "quit":  # Le mini-jeu est fini
@@ -130,6 +144,10 @@ def playGame(game: dict, window: pygame.Surface) -> bool:
             game_rendering = pygame.transform.scale_by(game_rendering, scale)
 
             window.blit(game_rendering, (window.width//2-game_rendering.width//2, window.height//2-game_rendering.height//2))  # On applique le rendu en le centrant
+
+            # On affiche les boutons
+            fps_input.display()
+
             pygame.display.flip()  # On actualise la fenêtre
             
         clock.tick(SPEED)  # On limite la boucle à SPEED tours par seconde
@@ -144,7 +162,7 @@ def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
     :type games: list[dict]
     :param window: La fenêtre sur laquelle va être affiché le menu
     :type window: pygame.Surface
-    :param assets: Les ressources du menu (images et sons)
+    :param assets: Les ressources du menu (images, sons et polices)
     :type assets: dict[str, dict | pygame.Surface | pygame.mixer.Sound]
     :return: Le jeu sélectionné par l'utilisateur sous forme d'un dictionnaire ou None si l'utilisateur a fermé la fenêtre
     :rtype: dict | None 
@@ -301,7 +319,7 @@ def main() -> None:
         if user_choice == None:
             break
         
-        status = playGame(user_choice, window)  # On fait tourner le mini-jeu et on récupère le status de sortie
+        status = playGame(user_choice, window, assets)  # On fait tourner le mini-jeu et on récupère le status de sortie
         if status:
             break
     
