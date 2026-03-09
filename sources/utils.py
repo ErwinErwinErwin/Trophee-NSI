@@ -147,7 +147,7 @@ class RangeInput:
         :return: True si le bouton touche la souris sinon False
         :rtype: bool
         """
-        return (mouse_pos[0] - self.button_x) ** 2 + (mouse_pos[1] - self.y - self.radius) ** 2 <= self.radius ** 2
+        return (mouse_pos[0] - self.button_x) ** 2 + (mouse_pos[1] - self.y - self.radius) ** 2 <= (self.radius + 2) ** 2
         
     def tick(self, mouse_pos: tuple, click_duration: int) -> None:
         """
