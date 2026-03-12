@@ -87,16 +87,17 @@ class LoadedFont:
 
 
 class RangeInput:
-    """
-    Cette class permet de facilement créer des entrées numériques avec un bouton à 
-    aggriper et défiler à l'horizontal. La seule méthode à appeler régulièrement est 'tick'.
-    """
 
-    def __init__(self, x: int, y: int, width: int, range: tuple, surface: pygame.Surface, title: str, font: pygame.Font, radius: int, default: float):
+    def __init__(self, x: int, y: int, width: int, range: tuple, surface: pygame.Surface, title: str, font: pygame.Font, radius: int, default: float,
+                 background_color: tuple = (180, 180, 180), color: tuple = (220, 220, 220), title_color: tuple = (230, 230, 230), title_gap_y: int = 5):
         """
+        Cette class permet de facilement créer des entrées numériques avec un bouton à 
+        aggriper et défiler à l'horizontal. Les seules méthodes à appeler régulièrement sont 'tick' 
+        que le bouton fonctionne et 'display' pour l'afficher.
+
         :param x: Coté gauche du bouton
         :type x: int
-        :param y: Haut du bouton
+        :param y: Haut du bouton (titre exclus)
         :type y: int
         :param width: Largeur graphique du bouton
         :type width: int
@@ -110,6 +111,16 @@ class RangeInput:
         :type font: pygame.Font
         :param radius: Taille du rayon du bouton
         :type radius: int
+        :param default: Valeur par défaut
+        :type default: int | float
+        :param background_color: Couleur de la barre sur laquelle se trouve le bouton
+        :type background_color: tuple[r, g, b]
+        :param color: Couleur du bouton
+        :type color: tuple[r, g, b]
+        :param title_color: Couleur du titre
+        :type title_color: tuple[r, g, b]
+        :param title_gap_y: Espace entre le bas du titre et le haut du bouton
+        :type title_gap_y: int
         """
         self.x = x
         self.y = y
@@ -124,6 +135,10 @@ class RangeInput:
         self.surface = surface
         self.radius = radius
         self.is_touching_mouse = False
+        self.background_color = background_color
+        self.color = color
+        self.title_color = title_color
+        self.title_gap_y = title_gap_y
         match len(range):
             case 1:
                 self.maximum = range[0]
@@ -179,9 +194,11 @@ class RangeInput:
         Affiche le bouton avec son titre.
         """
         rect = (self.x - self.radius, self.y, self.width + 2 * self.radius, 2 * self.radius)
-        pygame.draw.rect(self.surface, (180, 180, 180), rect, border_radius=self.radius)
-        color = (240, 240, 240) if self.is_touching_mouse or self.clicked else (220, 220, 220)
+        pygame.draw.rect(self.surface, self.background_color, rect, border_radius=self.radius)
+        color = tuple(min(255, c+20) for c in self.color) if self.is_touching_mouse or self.clicked else self.color
         pygame.draw.circle(self.surface, color, (self.button_x, self.y + self.radius), self.radius + 2)
+        title = self.font.render(self.title.replace("{value}", str(self.value)), True, self.title_color)
+        self.surface.blit(title, (self.x +self.width//2-title.width//2, self.y-title.height-self.title_gap_y))
 
 
 # Fonctions utilitaires disponibles pour les mini-jeux

@@ -52,8 +52,8 @@ def playGame(game: dict, window: pygame.Surface, assets: dict) -> bool:
     clock = pygame.time.Clock()  # Pour réguler la vitesse d'une boucle
 
     # On créé une entrée numérique pour que l'utilisateur puisque gérer ses FPS sur n'importe quel jeu
-    font = assets["fonts"]["inter.ttf"].getFont(20)
-    fps_input = RangeInput(20, 20, 160, (1, SPEED), window, "FPS: {value}", font, 10, SPEED)
+    font = assets["fonts"]["inter.ttf"].getFont(18)
+    fps_input = RangeInput(20, 30, 140, (5, SPEED), window, "FPS: {value}", font, 8, SPEED)
 
     while True:
 
