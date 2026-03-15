@@ -93,7 +93,7 @@ class CelestialBody:
     calcul de la force gravitationelle.
     """
 
-    def __init__(self, x: int, y: int, weight: float):
+    def __init__(self, x: int, y: int, weight: float, radius: int):
         """
         :param x: Abscisse de l'astre (en m)
         :type x: int
@@ -101,10 +101,13 @@ class CelestialBody:
         :type y: int
         :param weight: Masse de l'astre (en kg)
         :type weight: int
+        :param radius: Rayon de l'astre (en m)
+        :type radius: int
         """
         self.x = x
         self.y = y
         self.weight = weight
+        self.radius = radius
         self.other_bodies = []
         self.acceleration = Vector()  # Vecteur accélération en m/s^2
         self.speed = Vector()  # Vecteur vitesse en m/s
@@ -116,10 +119,24 @@ class CelestialBody:
         self.acceleration.magnitude = 0
         self.speed.magnitude = 0
     
+    def collide(self, body: Self) -> bool:
+        """
+        Retourne True si cet astre est en collision avec body.
+
+        :param body: L'astre avec lequel on veut tester la collision
+        :type body: CelestialBody
+        :return: True si les 2 astres sont en collision, False sinon
+        :rtype: bool
+        """
+        dx = self.x - body.x
+        dy = self.y - body.y
+        distance = sqrt(dx**2 + dy**2)
+        return distance < self.radius + body.radius
+    
     def addInteraction(self, body: Self) -> None:
         self.other_bodies.append(body)
     
-    def calculateForce(self, body) -> Vector:
+    def calculateForce(self, body: Self) -> Vector:
         # On utilise le calcul de la force gravitationnelle
         dx = body.x - self.x
         dy = body.y - self.y

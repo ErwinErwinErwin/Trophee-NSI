@@ -51,9 +51,9 @@ def playGame(game: dict, window: pygame.Surface, assets: dict) -> bool:
     cooldown_before_render = 0  # Augmente de fps/SPEED à chaque itération de la boucle. L'écran sera actualisé à chaque fois qu'il atteint 1
     clock = pygame.time.Clock()  # Pour réguler la vitesse d'une boucle
 
-    # On créé une entrée numérique pour que l'utilisateur puisque gérer ses FPS sur n'importe quel jeu
+    # On créé une entrée numérique pour que l'utilisateur puisse gérer ses FPS sur n'importe quel jeu
     font = assets["fonts"]["inter.ttf"].getFont(18)
-    fps_input = RangeInput(20, 30, 140, (5, SPEED), window, "FPS: {value}", font, 8, SPEED)
+    fps_input = RangeInput(20, 30, 140, (5, SPEED), window, lambda value: f"FPS: {value}", font, 8, SPEED)
 
     while True:
 

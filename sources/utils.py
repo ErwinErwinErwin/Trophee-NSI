@@ -7,6 +7,7 @@ en les récupérant via le paramètre 'utils' de la fonction 'load' du mini-jeu 
 from os import scandir, path
 from json import load
 import pygame
+from typing import Callable
 
 # Fonctions uniquement utilisées par le script main.py
 
@@ -88,7 +89,7 @@ class LoadedFont:
 
 class RangeInput:
 
-    def __init__(self, x: int, y: int, width: int, range: tuple, surface: pygame.Surface, title: str, font: pygame.Font, radius: int, default: float,
+    def __init__(self, x: int, y: int, width: int, range: tuple, surface: pygame.Surface, title: Callable[[int], str], font: pygame.Font, radius: int, default: float,
                  background_color: tuple = (180, 180, 180), color: tuple = (220, 220, 220), title_color: tuple = (230, 230, 230), title_gap_y: int = 5):
         """
         Cette class permet de facilement créer des entrées numériques avec un bouton à 
@@ -105,8 +106,8 @@ class RangeInput:
         :type range: tuple[max] | tuple[min, max] | tuple[min, max, pas]
         :param surface: La surface sur laquelle sera dessinée le bouton
         :type surface: pygame.Surface
-        :param title: Texte affiché au dessus du bouton, la valeur du bouton peut être intégrée avec {value}
-        :type title: str
+        :param title: Une fonction qui possède un paramètre value et qui retourne le texte affiché au dessus du bouton
+        :type title: function(value: int) -> str
         :param font: Police utilisée pour afficher le titre
         :type font: pygame.Font
         :param radius: Taille du rayon du bouton
@@ -197,7 +198,8 @@ class RangeInput:
         pygame.draw.rect(self.surface, self.background_color, rect, border_radius=self.radius)
         color = tuple(min(255, c+20) for c in self.color) if self.is_touching_mouse or self.clicked else self.color
         pygame.draw.circle(self.surface, color, (self.button_x, self.y + self.radius), self.radius + 2)
-        title = self.font.render(self.title.replace("{value}", str(self.value)), True, self.title_color)
+        title_txt = self.title(self.value)
+        title = self.font.render(title_txt, True, self.title_color)
         self.surface.blit(title, (self.x +self.width//2-title.width//2, self.y-title.height-self.title_gap_y))
 
 
