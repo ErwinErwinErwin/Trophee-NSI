@@ -2,8 +2,9 @@
 
 import pygame
 from os import path
-from .physics import CelestialBody, Vector
+from .physics import Vector
 from utils import loadAssetsFolder, RangeInput
+from .graphical_celestial_body import GraphicalCelestialBody
 
 WINDOW_WIDTH, WINDOW_HEIGHT = WINDOW_SIZE = (1600, 900)
 FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
@@ -13,12 +14,15 @@ cam_x = 0
 cam_y = 0
 event_list = []  # Liste des évènements
 scale = 100000  # 1 pixel = 100 000 mètres
-time_scale = 600  # 1 seconde dans la réalité correspond à 600 seconde dans le jeu
+time_scale = 6000  # 1 seconde dans la réalité correspond à 6000 seconde dans le jeu
 
 surface = pygame.Surface(WINDOW_SIZE)  # La surface utilisée dans la fonction display
 
-earth = CelestialBody(0, 0, 5.972e24, 6.4e6)
-sun = CelestialBody(1.5e9, 0, 1e27, 7e8)
+# Préciser le type de la variable est facultatif mais permet à l'éditeur de code de proposer l'auto-complétion
+# Les variables initialisées à None sont des variables globales qui seront initialisées dans la fonction load
+
+earth: GraphicalCelestialBody = None  # La planète Terre, initialisée dans la fonction load
+sun: GraphicalCelestialBody = None
 launched = False
 launching = False
 launch_start = None
@@ -26,9 +30,7 @@ launch_speed = Vector()
 zoom_input: RangeInput = None
 time_input: RangeInput = None
 
-# On initie les variables qui vont contenir les assets
-# Préciser le type de la variable est facultatif mais permet à l'éditeur de code de proposer l'auto-complétion
-earth_images: dict[int, pygame.Surface] = {}
+# On initialise les variables qui vont contenir les assets
 background: pygame.Surface = None
 
 # On définit les fonctions secondaires
@@ -70,27 +72,39 @@ def load() -> None:
     """
     def convertTime(value: int) -> str:
         if value >= 3600:
-            return f"1s : {value//3600}h"
+            return f"1s : {value//3600}h {(value%3600)//60}min"
         elif value >= 60:
             return f"1s : {value//60}min"
         else:
             return f"1s : {value}s"
     
-    global background, zoom_input, time_input
+    def convertDistance(value: int) -> str:
+        if value >= 1e9:
+            return f"1px : {round(value/1e9)} x 10^6 km"
+        elif value >= 1e6:
+            return f"1px : {round(value/1e6)} x 10^3 km"
+        elif value >= 1000:
+            return f"1px : {value//1000} km"
+        else:
+            return f"1px : {value} m"
+    
+    global background, zoom_input, time_input, earth, sun
     
     assets = {}
     loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
     
     earth_image = assets["images"]["earth.png"]
     background = assets["images"]["space.png"]
+    sun_spritesheet = assets["images"]["sun[SPRITESHEET;500].png"]
+    sun_spritesheet.animation_speed = 10
 
-    # On adapte la taille des images
-    earth_images[50000] = pygame.transform.scale_by(earth_image, 0.5)
+    earth = GraphicalCelestialBody(0, 0, 5.972e24, 6.4e6, earth_image, surface, screenPosition)
+    sun = GraphicalCelestialBody(1.5e8, 0, 1e27, 7e7, sun_spritesheet, surface, screenPosition)
 
     # Une fois les assets chargées on peut créer le RangeInput
     font = assets["fonts"]["inter.ttf"].getFont(24)
-    zoom_input = RangeInput(36, WINDOW_HEIGHT-36, 160, (50000, 500000, 10000), surface, lambda value: f"1px : {value}m", font, 12, 100000)
-    time_input = RangeInput(230, WINDOW_HEIGHT-36, 160, (60, 1200, 60), surface, convertTime, font, 12, 600)
+    zoom_input = RangeInput(36, WINDOW_HEIGHT-36, 160, (50000, 500000, 10000), surface, convertDistance, font, 12, 100000)
+    time_input = RangeInput(230, WINDOW_HEIGHT-36, 160, (600, 12000, 600), surface, convertTime, font, 12, 6000)
 
 
 def init() -> None:
@@ -123,8 +137,8 @@ def tick(keys: dict, mouse: dict) -> None:
                 # launched = True
                 launching = False
                 earth.speed.direction = launch_speed.direction
-                # On convertit la distance du lancement en une vitesse de lancement en m/s avec l'échelle suivante : 750 m = 1 m/s
-                earth.speed.magnitude = launch_speed.magnitude * scale / 750
+                # On convertit la distance du lancement en une vitesse de lancement en m/s avec l'échelle suivante : 7500 m = 1 m/s
+                earth.speed.magnitude = launch_speed.magnitude * scale / 7500
                 earth.addInteraction(sun)
         else:
             # La souris vient dêtre cliquée
@@ -171,23 +185,13 @@ def display() -> pygame.Surface:
     for x in range(round(cam_x*scale*-1.5e-7)%background.width-background.width, WINDOW_WIDTH, background.width):
         for y in range(round(cam_y*scale*-1.5e-7)%background.height-background.height, WINDOW_HEIGHT, background.height):
             surface.blit(background, (x, y))
-    
-    # On affiche le soleil
-    sun_x, sun_y = screenPosition(sun.x, sun.y)
-    pygame.draw.circle(surface, (255, 0, 0), (sun_x, sun_y), round(sun.radius/scale))
 
     if launching:
         pygame.draw.line(surface, (255, 0, 0), launch_start, (mouse_pos["x"], mouse_pos["y"]), 3)
     
-    # On ajoute la planète Terre
-    if scale in earth_images:
-        earth_image = earth_images[scale]
-    else:
-        earth_image = pygame.transform.scale_by(earth_images[50000], 50000/scale)
-        earth_images[scale] = earth_image
-    
-    earth_x, earth_y = screenPosition(earth.x, earth.y)
-    surface.blit(earth_image, (earth_x - earth_image.width//2, earth_y - earth_image.width//2))
+    # On ajoute la planète Terre et le Soleil
+    sun.display(scale)
+    earth.display(scale)
 
     # On affiche les boutons
     zoom_input.display()

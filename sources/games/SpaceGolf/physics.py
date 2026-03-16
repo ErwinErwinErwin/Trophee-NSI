@@ -93,20 +93,20 @@ class CelestialBody:
     calcul de la force gravitationelle.
     """
 
-    def __init__(self, x: int, y: int, weight: float, radius: int):
+    def __init__(self, x: int, y: int, mass: float, radius: int):
         """
         :param x: Abscisse de l'astre (en m)
         :type x: int
         :param y: Ordonnée de l'astre (en m)
         :type y: int
-        :param weight: Masse de l'astre (en kg)
-        :type weight: int
+        :param mass: Masse de l'astre (en kg)
+        :type mass: float
         :param radius: Rayon de l'astre (en m)
         :type radius: int
         """
         self.x = x
         self.y = y
-        self.weight = weight
+        self.mass = mass
         self.radius = radius
         self.other_bodies = []
         self.acceleration = Vector()  # Vecteur accélération en m/s^2
@@ -141,7 +141,7 @@ class CelestialBody:
         dx = body.x - self.x
         dy = body.y - self.y
         distance = sqrt(dx**2 + dy**2)
-        value = 6.6743e-11 * self.weight * body.weight / distance**2
+        value = 6.6743e-11 * self.mass * body.mass / distance**2
         return Vector(magnitude=value, direction=getDirection(dx, dy))
     
     def calculateForces(self, bodies: tuple | list) -> Vector:
@@ -164,7 +164,7 @@ class CelestialBody:
         # D'après la 2e loi de Newton : l'accélération est le quotient de la somme des forces par la masse
         # De plus le vecteur de la somme des forces a la même direction que le vecteur accélération
         self.acceleration.direction = sum_forces.direction
-        self.acceleration.magnitude = sum_forces.magnitude / self.weight
+        self.acceleration.magnitude = sum_forces.magnitude / self.mass
     
     def move(self, dt: float) -> None:
         """

@@ -8,6 +8,8 @@ from os import scandir, path
 from json import load
 import pygame
 from typing import Callable
+from time import time
+from re import search
 
 # Fonctions uniquement utilisées par le script main.py
 
@@ -85,6 +87,40 @@ class LoadedFont:
         font = pygame.font.Font(self.filepath, size)
         self.sizes[size] = font
         return font
+
+
+class SpriteSheet:
+    
+    def __init__(self, image: pygame.Surface, sprite_width: int, animation_speed: float = 1.0) -> None:
+        """
+        SpriteSheet représente une image animée.
+
+        :param image: L'image horizontale contenant les sprites
+        :type image: pygame.Surface
+        :param sprite_width: La largeur de chaque sprite (en px)
+        :type sprite_width: int
+        :param animation_speed: La vitesse de l'animation (en sprites/s)
+        :type animation_speed: float
+        """
+        self.frames = []
+        for x in range(0, image.width, sprite_width):
+            self.frames.append(image.subsurface(x, 0, sprite_width, image.height))
+        self.animation_speed = animation_speed
+        self.frame = 0
+        self.last_update = time()
+
+    def getCurrentSprite(self) -> pygame.Surface:
+        """
+        getCurrentSprite renvoie le sprite actuel de l'animation en fonction du temps écoulé.
+
+        :return: Le sprite actuel de l'animation
+        :rtype: pygame.Surface
+        """
+        now = time()
+        if now - self.last_update >= 1 / self.animation_speed:
+            self.frame = (self.frame + 1) % len(self.frames)
+            self.last_update = now
+        return self.frames[self.frame]
 
 
 class RangeInput:
@@ -207,10 +243,12 @@ class RangeInput:
 
 def loadAssetsFolder(assets: dict, folder_path: str) -> None:
     """
-    loadAssetsFolder va scanner récursivement tous les sous dossiers de dossier passé en paramètre et charger toutes les images, les sons et les polices qui s'y trouvent.
+    loadAssetsFolder va scanner récursivement tous les sous dossiers de dossier passé en paramètre 
+    et charger toutes les images, les sons, les polices et les feuilles de sprite qui s'y trouvent.
     
-    :param assets: Le dictionnaire qui va contenir l'arborescence du dossier scanné, les sous dossiers étant des dictionnaires, 
-    les images des objets pygame.Surface, les sons des objets pygame.mixer.Sound et les polices des objets utils.LoadedFont
+    :param assets: Le dictionnaire qui va contenir l'arborescence du dossier scanné, les sous dossiers 
+        étant des dictionnaires, les images des objets pygame.Surface, les sons des objets pygame.mixer.Sound, 
+        les polices des objets utils.LoadedFont et les feuilles de sprite des objets utils.SpriteSheet
     :type assets: dict
     :param folder_path: Chemin du dossier à scanner
     :type folder_path: str
@@ -230,7 +268,12 @@ def loadAssetsFolder(assets: dict, folder_path: str) -> None:
                         img = img.convert_alpha()
                     else:
                         img = img.convert()
-                    assets[element.name] = img
+                    match = search(r"\[SPRITESHEET;(\d+)\]", element.name)
+                    if match:
+                        width = int(match.group(1))
+                        assets[element.name] = SpriteSheet(img, width)
+                    else:
+                        assets[element.name] = img
                 except:
                     print(f"[Erreur] Impossible de charger l'image '{element.path}'")
             elif format in (".mp3", ".wav", ".ogg"):
