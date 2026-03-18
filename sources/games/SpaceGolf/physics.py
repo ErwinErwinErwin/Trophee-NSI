@@ -1,5 +1,7 @@
 from math import sin, cos, sqrt, atan, pi
-from typing import Self
+from typing import Self, Callable
+from pygame import Surface, transform
+from utils import SpriteSheet
 
 def getDirection(dx: float, dy: float) -> float:
     """
@@ -23,6 +25,19 @@ def getDirection(dx: float, dy: float) -> float:
     return direction
 
 
+def absModulo(value: float, modulo: float) -> float:
+    """
+    Retourne le modulo de la valeur absolue de value en gardant le signe de value.
+
+    :param value: La valeur à moduler
+    :type value: float
+    :param modulo: Le modulo
+    :type modulo: float
+    :return: Le modulo de la valeur absolue de value en gardant le signe de value
+    :rtype: float
+    """
+    return (abs(value) % modulo) * (1 if value >= 0 else -1)
+
 class Vector:
 
     def __init__(self, coordinates: tuple = None, magnitude: float = None, direction: float = None):
@@ -38,21 +53,32 @@ class Vector:
         :param direction: Direction du vecteur (rad), va de pair avec la norme
         :type direction: float
         """
-        self.magnitude = magnitude
+        self._magnitude = magnitude
         self.direction = direction
         if coordinates:
             self.coordinates = coordinates
         if not (self.magnitude != None and self.direction != None):
             self.magnitude = 0
             self.direction = 0
+
+    @property
+    def magnitude(self) -> float:
+        return self._magnitude
+    
+    @magnitude.setter
+    def magnitude(self, v: float) -> None:
+        # Pour éviter une norme négative, on utilise une valeur absolue et on retourne la direction si besoin
+        self._magnitude = abs(v)
+        if v < 0:
+            self.direction += pi if self.direction <= 0 else -pi
     
     @property
     def x(self) -> float:
-        return self.magnitude * cos(self.direction)
+        return self._magnitude * cos(self.direction)
     
     @property
     def y(self) -> float:
-        return self.magnitude * sin(self.direction)
+        return self._magnitude * sin(self.direction)
     
     @property
     def coordinates(self) -> tuple:
@@ -61,7 +87,7 @@ class Vector:
     @coordinates.setter
     def coordinates(self, xy: tuple | list):
         self.direction = getDirection(*xy)
-        self.magnitude = sqrt(xy[0]**2 + xy[1]**2)
+        self._magnitude = sqrt(xy[0]**2 + xy[1]**2)
     
     def sum(self, *vectors: Self) -> Self:
         """
@@ -84,6 +110,9 @@ class Vector:
     def __mul__(self, product: float) -> Self:
         # Dunder qui permet de multiplier un objet par un nombre
         return Vector((self.x*product, self.y*product))
+
+    def __rmul__(self, product: float) -> Self:
+        return self.__mul__(product)
         
 
 class CelestialBody:
@@ -93,7 +122,7 @@ class CelestialBody:
     calcul de la force gravitationelle.
     """
 
-    def __init__(self, x: int, y: int, mass: float, radius: int):
+    def __init__(self, x: int, y: int, mass: float, radius: int, black_hole: bool = False):
         """
         :param x: Abscisse de l'astre (en m)
         :type x: int
@@ -103,6 +132,8 @@ class CelestialBody:
         :type mass: float
         :param radius: Rayon de l'astre (en m)
         :type radius: int
+        :param black_hole: Si l'astre est un trou noir, on modifie la formule du calcul des forces gravitationnelles pour qu'il n'attire que les astres proches de lui
+        :type black_hole: bool
         """
         self.x = x
         self.y = y
@@ -111,6 +142,8 @@ class CelestialBody:
         self.other_bodies = []
         self.acceleration = Vector()  # Vecteur accélération en m/s^2
         self.speed = Vector()  # Vecteur vitesse en m/s
+        self.locked = False
+        self.is_black_hole = black_hole
     
     def stop(self) -> None:
         """
@@ -136,13 +169,30 @@ class CelestialBody:
     def addInteraction(self, body: Self) -> None:
         self.other_bodies.append(body)
     
-    def calculateForce(self, body: Self) -> Vector:
-        # On utilise le calcul de la force gravitationnelle
+    def getVector(self, body: Self) -> Vector:
+        """
+        Retourne le vecteur reliant cet astre et body.
+
+        :param body: L'astre avec lequel on veut calculer le vecteur
+        :type body: CelestialBody
+        :return: Le vecteur reliant les 2 astres (en m)
+        :rtype: Vector
+        """
         dx = body.x - self.x
         dy = body.y - self.y
-        distance = sqrt(dx**2 + dy**2)
-        value = 6.6743e-11 * self.mass * body.mass / distance**2
-        return Vector(magnitude=value, direction=getDirection(dx, dy))
+        return Vector((dx, dy))
+    
+    def calculateForce(self, body: Self) -> Vector:
+        """
+        Retourne le vecteur force gravitationnelle que body exerce sur cet astre.
+
+        :param body: L'astre qui exerce la force gravitationnelle sur cet astre
+        :type body: CelestialBody
+        """
+        # On utilise le calcul de la force gravitationnelle : F = G * m1 * m2 / d^2
+        vector = self.getVector(body)
+        value = 6.6743e-11 * self.mass * body.mass / vector.magnitude**(3 if body.is_black_hole else 2)
+        return Vector(magnitude=value, direction=vector.direction)
     
     def calculateForces(self, bodies: tuple | list) -> Vector:
         """
@@ -166,6 +216,18 @@ class CelestialBody:
         self.acceleration.direction = sum_forces.direction
         self.acceleration.magnitude = sum_forces.magnitude / self.mass
     
+    def calculateMovement(self, dt: float) -> Vector:
+        """
+        Calcule la variation de position de l'astre à partir de sa vitesse et du temps écoulé depuis le dernier appel de la fonction.
+
+        :param dt: Temps écoulé entre chaque appel de la fonction (s)
+        :type dt: float
+        :return: La variation de position de l'astre (en m)
+        :rtype: Vector
+        """
+        # Le vecteur déplacement est le produit du vecteur vitesse et du temps
+        return self.speed * dt
+    
     def move(self, dt: float) -> None:
         """
         Calcule les forces s'exerçant sur l'astre, son accélération et sa vitesse puis actualise sa position.
@@ -173,11 +235,116 @@ class CelestialBody:
         :param dt: Temps écoulé entre chaque appel de la fonction (s)
         :type dt: float
         """
+        if self.locked:
+            return
         self.calculateAcceleration()
         # Le vecteur variation de vitesse est le produit du vecteur accélération et du temps
         speed_variation = self.acceleration * dt
         # Le vecteur vitesse actuelle est la somme du vecteur vitesse précédent et du vecteur variation de vitesse
         self.speed += speed_variation
         # On actualise la position à partir de la vitesse et du temps écoulé depuis le dernier appel de la fonction
-        self.x += self.speed.x * dt
-        self.y += self.speed.y * dt
+        movement = self.calculateMovement(dt)
+        self.x += movement.x
+        self.y += movement.y
+
+
+class GraphicalCelestialBody(CelestialBody):
+
+    def __init__(self, x: int, y: int, mass: float, radius: int, image: Surface | SpriteSheet, surface: Surface, getPosition: Callable[[int, int], tuple[int, int]], black_hole: bool = False):
+        """
+        Class héritant de CelestialBody et ajoutant des propriétés graphiques pour le rendu de l'astre.
+
+        :param x: Abscisse de l'astre (en m)
+        :type x: int
+        :param y: Ordonnée de l'astre (en m)
+        :type y: int
+        :param mass: Masse de l'astre (en kg)
+        :type mass: float
+        :param radius: Rayon de l'astre (en m)
+        :type radius: int
+        :param image: Image de l'astre pour le rendu (peut être animée)
+        :type image: pygame.Surface | utils.SpriteSheet
+        :param surface: Surface sur laquelle afficher l'astre
+        :type surface: pygame.Surface
+        :param getPosition: Fonction permettant de convertir les coordonnées absolues (en m) en coordonnées relatives à l'écran (en px)
+        :type getPosition: Callable[[int, int], tuple[int, int]]
+        :param black_hole: Si l'astre est un trou noir, on modifie la formule du calcul des forces gravitationnelles pour qu'il n'attire que les astres proches de lui
+        :type black_hole: bool
+        """
+        super().__init__(x, y, mass, radius, black_hole)
+        self.original_image = image
+        self.animated = isinstance(image, SpriteSheet)
+        # Dictionnaire d'images de différentes tailles pour l'adaptation au zoom
+        self.images: dict[int, Surface | list[Surface]] = {}
+        self.angle = 0  # Angle de rotation de l'image en degrés
+        self.surface = surface
+        self.getPosition = getPosition
+    
+    def display(self, scale: int) -> None:
+        """
+        Affiche l'astre à sa position actuelle en prenant en compte la rotation de son image.
+
+        :param scale: Échelle du rendu (en m/px)
+        :type scale: int
+        """
+        x, y = self.getPosition(self.x, self.y)
+        if self.animated:
+            if scale in self.images:
+                images = self.images[scale]
+            else:
+                images = [None] * len(self.original_image.frames)
+                self.images[scale] = images
+            current_frame = self.original_image.getCurrentSprite()
+            frame = self.original_image.frame
+            image = images[frame]
+            if image is None:
+                image = transform.scale_by(current_frame, self.radius*2 / scale / current_frame.width)
+                images[frame] = image
+        else:
+            if scale in self.images:
+                image = self.images[scale]
+            else:
+                image = transform.scale_by(self.original_image, self.radius*2 / scale / self.original_image.width)
+                self.images[scale] = image
+        if self.angle != 0:
+            image = transform.rotate(image, self.angle)
+        self.surface.blit(image, (x - image.width//2, y - image.height//2))
+
+
+class Earth(GraphicalCelestialBody):
+
+    def __init__(self, x: int, y: int, image: Surface | SpriteSheet, surface: Surface, getPosition: Callable[[int, int], tuple[int, int]]):
+        """
+        Réprésente la Terre et hérite de la classe GraphicalCelestialBody. La spécificité de la Terre 
+        est qu'elle sert de balle de golf et donc qu'elle doit posséder des méthodes personnalisées.
+
+        :param x: Abscisse de la Terre (en m)
+        :type x: int
+        :param y: Ordonnée de la Terre (en m)
+        :type y: int
+        :param image: Image de la Terre pour le rendu (peut être animée)
+        :type image: pygame.Surface | utils.SpriteSheet
+        :param surface: Surface sur laquelle afficher la Terre
+        :type surface: pygame.Surface
+        :param getPosition: Fonction permettant de convertir les coordonnées absolues (en m) en coordonnées relatives à l'écran (en px)
+        :type getPosition: Callable[[int, int], tuple[int, int]]
+        """
+        super().__init__(x, y, 972e24, 6.4e6, image, surface, getPosition)
+        self.in_black_hole = None  # Indique le trou noir dans lequel la Terre est actuellement, None si elle n'est dans aucun trou noir
+    
+    def calculateForce(self, body: CelestialBody) -> Vector:
+        vector = self.getVector(body)
+        # On profite du calcul des distances pour savoir si la Terre est aspirée par un trou noir
+        if not self.in_black_hole and body.is_black_hole and vector.magnitude < body.radius + self.radius:
+            self.in_black_hole = body
+        if self.in_black_hole:
+            # Formule ajustée du calcul des forces gravitationnelles pour obtenir un mouvement naturel malgré la force du trou noir
+            value = 6.6743e-11 * self.mass * body.mass / vector.magnitude / body.radius**3 * vector.magnitude
+            return Vector(magnitude=value, direction=vector.direction)
+        return super().calculateForce(body)
+
+    def move(self, dt: float) -> None:
+        # Si la Terre est dans un trou noir, on diminue sa vitesse pour éviter que la force du trou noir lui donne un effet de téléportation/clignotetement
+        if self.in_black_hole:
+            self.speed.magnitude *= 0.999**dt
+        return super().move(dt)

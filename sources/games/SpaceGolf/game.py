@@ -2,9 +2,8 @@
 
 import pygame
 from os import path
-from .physics import Vector
+from .physics import Vector, GraphicalCelestialBody, Earth
 from utils import loadAssetsFolder, RangeInput
-from .graphical_celestial_body import GraphicalCelestialBody
 
 WINDOW_WIDTH, WINDOW_HEIGHT = WINDOW_SIZE = (1600, 900)
 FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
@@ -23,6 +22,7 @@ surface = pygame.Surface(WINDOW_SIZE)  # La surface utilisée dans la fonction d
 
 earth: GraphicalCelestialBody = None  # La planète Terre, initialisée dans la fonction load
 sun: GraphicalCelestialBody = None
+worm_hole: GraphicalCelestialBody = None
 launched = False
 launching = False
 launch_start = None
@@ -88,7 +88,7 @@ def load() -> None:
         else:
             return f"1px : {value} m"
     
-    global background, zoom_input, time_input, earth, sun
+    global background, zoom_input, time_input, earth, sun, worm_hole
     
     assets = {}
     loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
@@ -97,14 +97,20 @@ def load() -> None:
     background = assets["images"]["space.png"]
     sun_spritesheet = assets["images"]["sun[SPRITESHEET;500].png"]
     sun_spritesheet.animation_speed = 10
+    worm_hole_spritesheet = assets["images"]["worm_hole[SPRITESHEET;400].png"]
+    worm_hole_spritesheet.animation_speed = 20
 
-    earth = GraphicalCelestialBody(0, 0, 5.972e24, 6.4e6, earth_image, surface, screenPosition)
-    sun = GraphicalCelestialBody(1.5e8, 0, 1e27, 7e7, sun_spritesheet, surface, screenPosition)
+    earth = Earth(0, 0, earth_image, surface, screenPosition)
+    sun = GraphicalCelestialBody(1.5e8, 0, 1e26, 7e7, sun_spritesheet, surface, screenPosition)
+    worm_hole = GraphicalCelestialBody(3e8, 0, 1e34, 2e7, worm_hole_spritesheet, surface, screenPosition, True)
+    earth.addInteraction(sun)
+    earth.addInteraction(worm_hole)
+    earth.locked = True  # Tant que la Terre est verrouillée, elle ne subit pas les forces gravitationnelles et ne bouge pas
 
     # Une fois les assets chargées on peut créer le RangeInput
     font = assets["fonts"]["inter.ttf"].getFont(24)
     zoom_input = RangeInput(36, WINDOW_HEIGHT-36, 160, (50000, 500000, 10000), surface, convertDistance, font, 12, 100000)
-    time_input = RangeInput(230, WINDOW_HEIGHT-36, 160, (600, 12000, 600), surface, convertTime, font, 12, 6000)
+    time_input = RangeInput(230, WINDOW_HEIGHT-36, 160, (600, 14400, 600), surface, convertTime, font, 12, 5400)
 
 
 def init() -> None:
@@ -139,7 +145,7 @@ def tick(keys: dict, mouse: dict) -> None:
                 earth.speed.direction = launch_speed.direction
                 # On convertit la distance du lancement en une vitesse de lancement en m/s avec l'échelle suivante : 7500 m = 1 m/s
                 earth.speed.magnitude = launch_speed.magnitude * scale / 7500
-                earth.addInteraction(sun)
+                earth.locked = False
         else:
             # La souris vient dêtre cliquée
             if mouse["click"][0] == 1:
@@ -148,6 +154,7 @@ def tick(keys: dict, mouse: dict) -> None:
                 if (mouse["x"] - earth_x)**2 + (mouse["y"] - earth_y)**2 < (6.2e6/scale)**2:
                     earth.stop()
                     launching = True
+                    earth.locked = True
                     launch_start = mouse["x"], mouse["y"]
     
     # Simulation des boutons
@@ -191,6 +198,7 @@ def display() -> pygame.Surface:
     
     # On ajoute la planète Terre et le Soleil
     sun.display(scale)
+    worm_hole.display(scale)
     earth.display(scale)
 
     # On affiche les boutons
