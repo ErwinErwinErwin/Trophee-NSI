@@ -228,22 +228,24 @@ class CelestialBody:
         # Le vecteur déplacement est le produit du vecteur vitesse et du temps
         return self.speed * dt
     
-    def move(self, dt: float) -> None:
+    def move(self, dt: float, time_scale: int) -> None:
         """
         Calcule les forces s'exerçant sur l'astre, son accélération et sa vitesse puis actualise sa position.
 
         :param dt: Temps écoulé entre chaque appel de la fonction (s)
         :type dt: float
+        :param time_scale: Échelle du temps (1s de jeu correspond à time_scale secondes réelles)
+        :type time_scale: int
         """
         if self.locked:
             return
         self.calculateAcceleration()
         # Le vecteur variation de vitesse est le produit du vecteur accélération et du temps
-        speed_variation = self.acceleration * dt
+        speed_variation = self.acceleration * dt * time_scale
         # Le vecteur vitesse actuelle est la somme du vecteur vitesse précédent et du vecteur variation de vitesse
         self.speed += speed_variation
         # On actualise la position à partir de la vitesse et du temps écoulé depuis le dernier appel de la fonction
-        movement = self.calculateMovement(dt)
+        movement = self.calculateMovement(dt * time_scale)
         self.x += movement.x
         self.y += movement.y
 
@@ -313,7 +315,7 @@ class GraphicalCelestialBody(CelestialBody):
 
 class Earth(GraphicalCelestialBody):
 
-    def __init__(self, x: int, y: int, image: Surface | SpriteSheet, surface: Surface, getPosition: Callable[[int, int], tuple[int, int]]):
+    def __init__(self, x: int, y: int, image: Surface | SpriteSheet, surface: Surface, getPosition: Callable[[int, int], tuple[int, int]], goal: CelestialBody):
         """
         Réprésente la Terre et hérite de la classe GraphicalCelestialBody. La spécificité de la Terre 
         est qu'elle sert de balle de golf et donc qu'elle doit posséder des méthodes personnalisées.
@@ -328,23 +330,56 @@ class Earth(GraphicalCelestialBody):
         :type surface: pygame.Surface
         :param getPosition: Fonction permettant de convertir les coordonnées absolues (en m) en coordonnées relatives à l'écran (en px)
         :type getPosition: Callable[[int, int], tuple[int, int]]
+        :param goal: L'astre (un trou noir / trou de ver) à atteindre pour valider le niveau
+        :type goal: CelestialBody | GraphicalCelestialBody
         """
         super().__init__(x, y, 972e24, 6.4e6, image, surface, getPosition)
         self.in_black_hole = None  # Indique le trou noir dans lequel la Terre est actuellement, None si elle n'est dans aucun trou noir
+        self.narrowing = 0  # Pourcentage du rétrécissement de la Terre quand elle tombe dans un trou noir
+        self.fallen = False  # Est tombée dans un trou noir
+        self.success = False  # A atteint la sortie
+        self.original_x = x
+        self.original_y = y
+        self.goal = goal
     
     def calculateForce(self, body: CelestialBody) -> Vector:
         vector = self.getVector(body)
         # On profite du calcul des distances pour savoir si la Terre est aspirée par un trou noir
-        if not self.in_black_hole and body.is_black_hole and vector.magnitude < body.radius + self.radius:
+        if not self.in_black_hole and body.is_black_hole and vector.magnitude < body.radius:
             self.in_black_hole = body
         if self.in_black_hole:
             # Formule ajustée du calcul des forces gravitationnelles pour obtenir un mouvement naturel malgré la force du trou noir
-            value = 6.6743e-11 * self.mass * body.mass / vector.magnitude / body.radius**3 * vector.magnitude
+            value = 6.6743e-11 * self.mass * body.mass / vector.magnitude / body.radius**2.9 * vector.magnitude
             return Vector(magnitude=value, direction=vector.direction)
         return super().calculateForce(body)
 
-    def move(self, dt: float) -> None:
+    def move(self, dt: float, time_scale: int) -> None:
         # Si la Terre est dans un trou noir, on diminue sa vitesse pour éviter que la force du trou noir lui donne un effet de téléportation/clignotetement
         if self.in_black_hole:
-            self.speed.magnitude *= 0.999**dt
-        return super().move(dt)
+            self.speed.magnitude *= 0.999**(dt * time_scale)
+            if not self.fallen:
+                self.narrowing += 3 * dt
+                if self.narrowing >= 3:  # Quand l'aspiration atteint 300% on considère que la Terre a disparu
+                    self.fallen = True
+                    if self.in_black_hole is self.goal:
+                        self.success = True
+        super().move(dt, time_scale)
+        return False
+
+    def display(self, scale: int) -> None:
+        # On ajuste scale pour réduire la taille de la Terre si elle se fait aspirer par un trou noir
+        if self.narrowing:
+            scale += round(scale * self.narrowing)
+        return super().display(scale)
+    
+    def reset(self) -> None:
+        """
+        Réinitialise la position, la vitesse et l'aspiration de la Terre pour recommencer le niveau.
+        """
+        self.x = self.original_x
+        self.y = self.original_y
+        self.narrowing = 0
+        self.in_black_hole = None
+        self.fallen = False
+        self.locked = True
+        self.stop()

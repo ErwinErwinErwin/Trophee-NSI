@@ -20,7 +20,7 @@ surface = pygame.Surface(WINDOW_SIZE)  # La surface utilisée dans la fonction d
 # Préciser le type de la variable est facultatif mais permet à l'éditeur de code de proposer l'auto-complétion
 # Les variables initialisées à None sont des variables globales qui seront initialisées dans la fonction load
 
-earth: GraphicalCelestialBody = None  # La planète Terre, initialisée dans la fonction load
+earth: Earth = None  # La planète Terre, initialisée dans la fonction load
 sun: GraphicalCelestialBody = None
 worm_hole: GraphicalCelestialBody = None
 launched = False
@@ -100,9 +100,10 @@ def load() -> None:
     worm_hole_spritesheet = assets["images"]["worm_hole[SPRITESHEET;400].png"]
     worm_hole_spritesheet.animation_speed = 20
 
-    earth = Earth(0, 0, earth_image, surface, screenPosition)
     sun = GraphicalCelestialBody(1.5e8, 0, 1e26, 7e7, sun_spritesheet, surface, screenPosition)
-    worm_hole = GraphicalCelestialBody(3e8, 0, 1e34, 2e7, worm_hole_spritesheet, surface, screenPosition, True)
+    worm_hole = GraphicalCelestialBody(3e8, 0, 1e33, 2e7, worm_hole_spritesheet, surface, screenPosition, True)
+    earth = Earth(0, 0, earth_image, surface, screenPosition, worm_hole)
+
     earth.addInteraction(sun)
     earth.addInteraction(worm_hole)
     earth.locked = True  # Tant que la Terre est verrouillée, elle ne subit pas les forces gravitationnelles et ne bouge pas
@@ -168,7 +169,12 @@ def tick(keys: dict, mouse: dict) -> None:
         cam_x += mouse_pos["x"] - mouse["x"]
         cam_y += mouse_pos["y"] - mouse["y"]
     
-    earth.move(1/40*time_scale)
+    earth.move(1/40, time_scale)
+    if earth.fallen:  # Tombée dans un trou noir
+        if earth.success:
+            earth.reset()
+        else:
+            pass
 
     # Mis à jour de la position de la souris
 
