@@ -54,6 +54,26 @@ def loadGame(folder: str, folder_path: str) -> dict | None:
     return game
 
 
+def pointCollideMask(mask: pygame.Mask, x: int, y: int) -> bool:
+    """
+    Teste la collision entre un point et un mask.
+
+    :param mask: Le mask qui va tester la collision
+    :type mask: pygame.Mask
+    :param x: Abscisse de point
+    :type x: int
+    :param y: Ordonnée du point
+    :type y: int
+    :return: True si il y a collision, sinon False
+    :rtype: bool
+    """
+    result = False
+    try:
+        result = mask.get_at((x, y)) > 0
+    except IndexError: pass
+    return result
+
+
 # Définition des class
 
 class LoadedFont:
@@ -204,7 +224,7 @@ class RangeInput:
     def tick(self, mouse_pos: tuple, click_duration: int) -> None:
         """
         La fonction tick doit être appelée régulièrement afin que le bouton 
-        soit fonctionnelle pour l'utilisateur.
+        soit fonctionnel pour l'utilisateur.
 
         :param mouse_pos: Position de la souris
         :type mouse_pos: tuple[int, int]
@@ -286,3 +306,72 @@ def loadAssetsFolder(assets: dict, folder_path: str) -> None:
                     assets[element.name] = LoadedFont(element.path)
                 except:
                     print(f"[Erreur] Impossible de charger la police '{element.path}'")
+
+
+class PopUp:
+
+    def __init__(self, window: pygame.Surface, x: int, y: int, background: pygame.Surface, *buttons: dict[str, int | pygame.Surface | Callable[[], None]]):
+        """
+        La class PopUp permet de créer facilement de petites fenêtres avec des boutons. 
+        Après l'initialisation, il suffit d'appeler régulièrement 'tick' pour que les 
+        boutons soient réactifs et 'display' pour afficher la pop-up.
+
+        :param window: La surface sur laquelle sera dessinée la pop-up
+        :type window: pygame.Surface
+        :param x: Abscisse du centre de la pop-up
+        :type x: int
+        :param y: Ordonnée du centre de la pop-up
+        :type y: int
+        :param background: Le fond de la pop-up
+        :type background: pygame.Surface
+        :param buttons: Les boutons qui vont être affichés sur la pop-up, les coordonnées sont relatives au centre de la pop-up
+        :type buttons: dict: {'x': int, 'y': int, 'surface': pygame.Surface, 'onclick': function}
+        """
+        self.window = window
+        self.x = x
+        self.y = y
+        self.background = background
+        self.buttons = buttons
+        self.background_mask = pygame.mask.from_surface(self.background)
+        for button in self.buttons:
+            button["mouseover"] = False
+            button["mask"] = pygame.mask.from_surface(button["surface"])
+            highlight = button["mask"].to_surface(setcolor=(255, 255, 255, 25), unsetcolor=(0, 0, 0, 0))
+            button["highlighted"] = button["surface"].copy()
+            button["highlighted"].blit(highlight, (0, 0))
+        self.displayed = False  # N'est pas utilisé dans la class mais peut servir au développeur plutôt que de créer une variable
+    
+    def tick(self, mouse_x: int, mouse_y: int, click_duration: int) -> bool:
+        """
+        La fonction tick doit être appelée régulièrement afin que les boutons 
+        soient fonctionnels pour l'utilisateur.
+
+        :param mouse_x: Abscisse de la souris
+        :type mouse_x: int
+        :param mouse_y: Ordonnée de la souris
+        :type mouse_y: int
+        :param click_duration: Durée du clic de la souris
+        :type click_duration: int
+        :return: True si l'utilisateur a cliqué sur la pop-up (bouton(s) ou fond), sinon False
+        :rtype: bool
+        """
+        intercepted = click_duration > 0 and pointCollideMask(self.background_mask, mouse_x+self.background.width//2-self.x, mouse_y+self.background.height//2-self.y)
+
+        for button in self.buttons:
+            surface = button["surface"]
+            button["mouseover"] = pointCollideMask(button["mask"], mouse_x-button["x"]+surface.width//2-self.x, mouse_y-button["y"]+surface.height//2-self.y)
+            if button["mouseover"] and click_duration == 1:
+                intercepted = True
+                button["onclick"]()
+        
+        return intercepted
+    
+    def display(self) -> None:
+        """
+        La fonction display affiche la pop-up sur la surface window aux 
+        coordonnées x et y correspondants au centre de la pop-up.
+        """
+        self.window.blit(self.background, (self.x - self.background.width//2, self.y - self.background.height//2))
+        for button in self.buttons:
+            surface = button["highlighted"] if button["mouseover"] else button["surface"]
+            self.window.blit(surface, (self.x+button["x"]-surface.width//2, self.y+button["y"]-surface.height//2))

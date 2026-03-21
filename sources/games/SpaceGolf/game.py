@@ -3,7 +3,7 @@
 import pygame
 from os import path
 from .physics import Vector, GraphicalCelestialBody, Earth
-from utils import loadAssetsFolder, RangeInput
+from utils import loadAssetsFolder, RangeInput, PopUp
 
 WINDOW_WIDTH, WINDOW_HEIGHT = WINDOW_SIZE = (1600, 900)
 FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
@@ -29,6 +29,7 @@ launch_start = None
 launch_speed = Vector()
 zoom_input: RangeInput = None
 time_input: RangeInput = None
+level_end: PopUp = None
 
 # On initialise les variables qui vont contenir les assets
 background: pygame.Surface = None
@@ -88,7 +89,15 @@ def load() -> None:
         else:
             return f"1px : {value} m"
     
-    global background, zoom_input, time_input, earth, sun, worm_hole
+    def onClickHome() -> None:
+        level_end.displayed = False
+        event_list.append({"type": "quit"})
+    
+    def onClickNext() -> None:
+        level_end.displayed = False
+        earth.reset()
+    
+    global background, zoom_input, time_input, earth, sun, worm_hole, level_end
     
     assets = {}
     loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
@@ -108,6 +117,10 @@ def load() -> None:
     earth.addInteraction(worm_hole)
     earth.locked = True  # Tant que la Terre est verrouillée, elle ne subit pas les forces gravitationnelles et ne bouge pas
 
+    level_end = PopUp(surface, WINDOW_WIDTH//2, WINDOW_HEIGHT//2, assets["images"]["popup_background.png"],
+                      {"x": -80, "y": 150, "surface": assets["images"]["popup_button1.png"], "onclick": onClickHome},
+                      {"x": 80, "y": 150, "surface": assets["images"]["popup_button2.png"], "onclick": onClickNext})
+
     # Une fois les assets chargées on peut créer le RangeInput
     font = assets["fonts"]["inter.ttf"].getFont(24)
     zoom_input = RangeInput(36, WINDOW_HEIGHT-36, 160, (50000, 500000, 10000), surface, convertDistance, font, 12, 100000)
@@ -118,12 +131,16 @@ def init() -> None:
     """
     Initialise/réinitialise le mini-jeu
     """
-    global launched, launching
-    earth.stop()
+    global launched, launching, cam_x, cam_y
+    earth.reset()
     launched = False
     launching = False
     launch_speed.magnitude = 0
     event_list.clear()
+    cam_x = cam_y = 0
+    level_end.displayed = False
+    zoom_input.value = 100000
+    time_input.value = 5400
 
 
 def tick(keys: dict, mouse: dict) -> None:
@@ -137,10 +154,25 @@ def tick(keys: dict, mouse: dict) -> None:
     """
     global mouse_pos, cam_x, cam_y, launch_start, launching, launched, scale, time_scale
 
+    mouse_click = mouse["click"][0]  # On utilise une variable temporaire pour pouvoir stopper la propagation d'un clic si celui-ci est intercepté par un bouton
+
+    # Simulation des pop-up
+    if level_end.displayed:
+        if level_end.tick(mouse["x"], mouse["y"], mouse_click):
+            mouse_click = 0
+    
+    # Simulation des boutons
+    zoom_input.tick((mouse["x"], mouse["y"]), mouse_click)
+    setScale(zoom_input.value)
+    time_input.tick((mouse["x"], mouse["y"]), mouse_click)
+    time_scale = time_input.value
+    if zoom_input.clicked or time_input.clicked:
+        mouse_click = 0
+
     if not launched:
         if launching:
             launch_speed.coordinates = launch_start[0] - mouse["x"], launch_start[1] - mouse["y"]
-            if mouse["click"][0] == 0:
+            if mouse_click == 0:
                 # launched = True
                 launching = False
                 earth.speed.direction = launch_speed.direction
@@ -149,7 +181,7 @@ def tick(keys: dict, mouse: dict) -> None:
                 earth.locked = False
         else:
             # La souris vient dêtre cliquée
-            if mouse["click"][0] == 1:
+            if mouse_click == 1:
                 earth_x, earth_y = screenPosition(earth.x, earth.y)
                 # La souris touche la Terre
                 if (mouse["x"] - earth_x)**2 + (mouse["y"] - earth_y)**2 < (6.2e6/scale)**2:
@@ -157,24 +189,19 @@ def tick(keys: dict, mouse: dict) -> None:
                     launching = True
                     earth.locked = True
                     launch_start = mouse["x"], mouse["y"]
-    
-    # Simulation des boutons
-    zoom_input.tick((mouse["x"], mouse["y"]), mouse["click"][0])
-    setScale(zoom_input.value)
-    time_input.tick((mouse["x"], mouse["y"]), mouse["click"][0])
-    time_scale = time_input.value
+                    mouse_click = 0
 
     # Si le clic gauche de la souris est pressé, on compare sa position à la précédente pour faire déplacer la caméra
-    if mouse["click"][0] > 0 and not launching and not (zoom_input.clicked or time_input.clicked):
+    if mouse_click > 0 and not launching:
         cam_x += mouse_pos["x"] - mouse["x"]
         cam_y += mouse_pos["y"] - mouse["y"]
     
     earth.move(1/40, time_scale)
     if earth.fallen:  # Tombée dans un trou noir
         if earth.success:
-            earth.reset()
+            level_end.displayed = True
         else:
-            pass
+            earth.reset()
 
     # Mis à jour de la position de la souris
 
@@ -205,11 +232,16 @@ def display() -> pygame.Surface:
     # On ajoute la planète Terre et le Soleil
     sun.display(scale)
     worm_hole.display(scale)
-    earth.display(scale)
+    if not earth.fallen:
+        earth.display(scale)
 
     # On affiche les boutons
     zoom_input.display()
     time_input.display()
+
+    # On affiche les pop-up
+    if level_end.displayed:
+        level_end.display()
     
     return surface
 
