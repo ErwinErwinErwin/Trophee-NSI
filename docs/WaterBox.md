@@ -13,6 +13,7 @@ Le but est de maintenir les particules à une densité prédéfinie (`self.rest_
 Une fonction appelée "fonction kernel" (notée $W()$ ) est utilisée pour cela, la densité de repo dépend même dans les faits de cette même fonction. Certains kernel sont disponibles sur internet dans des articles de recherches, et sont populaires pour certains de leurs aspects (notamment Poly6 ou Spiky), mais par simplicité un kernel plus simple trouvé dans une vidéo de démonstration à été repris:
 
 $$ W(r) = \frac{{6(h-r)²}}{\pi h^4} $$
+
 $r$: la distance entre deux particules\
 $h$: le rayon de smoothing
 
@@ -62,6 +63,7 @@ Nous n'avons bien entendu pas inventé les formules qui nous ont permise de calc
 Il faut d'abord revenir rapidement sur le code qui implémente la force de pression, et voir qu'il est en réalité déduis d'une formule plus générale:
 
 Pour calculer une propriété $A$ en un point $x$ nous avons;
+
 $$ A(x) = \sum_i A_i \frac m{\rho_i} W(||x-x_i||) $$
 
 Plus simplement, c'est la somme de la valeur de cette propriété (dans le cas de la viscosité la valeur est fixe `self.viscosity`) multiplié par un terme qui dépend de la densité et du kernel, et ce pour toutes les particules $i$ du système.
@@ -82,6 +84,7 @@ Sans aucune optimisation l'algorithme est très fastidieux, et la plus grande pe
 En effet, pour toute propriété $A$ nous devons parcourir toutes les particules, alors que si l'on regarde dans notre fonction kernel, toutes les particules qui ont une distance $\leq h$ sont ignorées.
 
 Il devient alors utiles d'implémenter un "tri" spatial, qui consiste en fait à diviser l'espace en cases prédéfinie et stocker dans chaque cases les particules qui s'y trouves, lorsque l'on veut calculer une propriété il ne nous reste plus qu'à parcourir les cases adjacentes, de la manière suivante:
+
 ![Image d'exemple](spacial_sort.png)
 
 Note: dans le papier de recherche d'où cette image est tirée (voir Sources), $\hbar$ désigne le rayon d'influence $h$ dans notre code.
