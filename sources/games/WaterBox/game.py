@@ -50,7 +50,7 @@ def init() -> None:
     
     event_list.clear()
     # Initialise la simulation avec 150 particules en jet d'eau
-    sph_sim = SPHSimulation(width=1600, height=800, particle_count=400)
+    sph_sim = SPHSimulation(width=1600, height=800, particle_count=20)
     step = int((flow_x[1]-flow_x[0])/SPHParticle().radius-4)
     count = 150 // step
 
