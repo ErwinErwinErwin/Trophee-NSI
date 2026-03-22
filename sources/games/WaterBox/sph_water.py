@@ -218,7 +218,7 @@ class SPHSimulation:
 
                     
                     # Pressure force
-                    r = diff.length()
+                    r = distance
 
                     if r > 0:
                         direction = diff / r
