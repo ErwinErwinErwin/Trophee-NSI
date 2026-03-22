@@ -53,7 +53,7 @@ def playGame(game: dict, window: pygame.Surface, assets: dict) -> bool:
 
     # On créé une entrée numérique pour que l'utilisateur puisse gérer ses FPS sur n'importe quel jeu
     font = assets["fonts"]["inter.ttf"].getFont(18)
-    fps_input = RangeInput(20, 30, 140, (5, SPEED), window, lambda value: f"FPS: {value}", font, 8, SPEED)
+    fps_input = RangeInput(20, 30, 140, (5, SPEED), window, lambda value: f"FPS: {value}", font, 8, 30)
 
     while True:
 
