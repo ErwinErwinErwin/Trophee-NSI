@@ -10,7 +10,7 @@ from random import randint
 class SPHParticle:
     """Représente une particule seul dans la simulation"""
 
-    def __init__(self, x, y, mass=1.0, radius=6.0)-> None:
+    def __init__(self, x=0, y=0, mass=1.0, radius=6.0)-> None:
         self.position :pygame.Vector2 = pygame.Vector2(x, y)
         self.velocity :pygame.Vector2 = pygame.Vector2(0, 0)
         self.acceleration :pygame.Vector2 = pygame.Vector2(0, 0)
@@ -18,7 +18,7 @@ class SPHParticle:
         self.radius = radius
         self.density = 1.0
         self.pressure = 0.0
-        self.color = [41, 220, 214]  # Cyan
+        self.color = [40, 0, 255]  # bleu foncé
 
     def reset_acceleration(self)-> None:
         """Remet l'acceleration à 0"""
@@ -28,6 +28,7 @@ class SPHParticle:
         """Applique une force à une particule"""
         self.acceleration += force / self.density
         # 2nd loi de Newton: F = ma
+        # Ici la densité est la masse par "paquet d'eau" et on cherche l'acceleration pour un seul
 
     def update(self, dt, gravity)-> None:
         """Met à jour la position de la particule en fonction de delta temps et de la gravité"""
@@ -44,7 +45,7 @@ class SPHParticle:
 
         """Le rendu est fait sur tout l'écran visible avec un offset de 50 pour éviter tout effet de 'pop' lors du déplacement"""
         if -50 < draw_x < surface.get_width() + 50 and -50 < draw_y < surface.get_height() + 50:
-            pygame.draw.circle(surface, self.color, (draw_x, draw_y), int(self.radius))
+            pygame.draw.circle(surface, self.color, (draw_x, draw_y), int(self.radius)+15)
             
     def update_spatial_disc(self, spatial_lookup):
         spatial_lookup
@@ -53,19 +54,20 @@ class SPHParticle:
 class SPHSimulation:
     """Modèle d'implementation du système SPH"""
 
-    def __init__(self, width=1600, height=900, particle_count=100)-> None:
+    def __init__(self, width=2500, height=900, particle_count=100)-> None:
         self.width = width
         self.height = height
         self.particles = []
-        self.gravity = pygame.Vector2(0, 9.81)  # pixels/s²
+        self.gravity = pygame.Vector2(0, 35)  # pixels/s²
 
         # Param de la sim
-        self.smoothing_radius = 30.0 # Le rayon de dégradé
-        self.rest_density = 0.00001 # La densité de repo
-        self.gas_stiffness = 1000 # La densité du gaz ambient
-        self.viscosity = 0.5 # La viscosité du liquide
-        self.surface_tension = 0.0728 # La tension de surface
-        self.damping = 0.995
+        self.smoothing_radius = 20.0 # Le rayon de dégradé
+        self.rest_density = 9 # La densité de repo
+        self.gas_stiffness = 30 # La densité du gaz ambient
+        self.viscosity = 0.2 # La viscosité du liquide
+        self.damping = 0.980
+        
+        self.cursor_radius = 150
         
         #separation de l'espace
         
@@ -110,7 +112,7 @@ class SPHSimulation:
         
 
         particles_per_row = int(math.sqrt(count))
-        spacing = 29.99999
+        spacing = 15
         start_x = self.width // 2 - (particles_per_row * spacing) // 2
         start_y = self.height // 4 
 
@@ -129,9 +131,8 @@ class SPHSimulation:
                 self.spatial_lookup[cell].append(new_particle)
                 
 
-    def _kernel(self, distance, h)->int:
+    def _kernel(self, distance, h)->float:
         """Cette fonction retourne l'influence (W) d'une particule à une distance donnée dans un rayon d'influence h
-        Poly6 kernel 2d
 
         Args:
             distance (int): distance
@@ -140,26 +141,30 @@ class SPHSimulation:
         Returns:
             int: la valeur 
         """
+        
         if distance >= h: # Si la particule est hors du rayon
             return 0.0
-
-        term = h * h - distance * distance
-        return self.KERNEL_FACTOR * (term ** 3)
-
-    def _kernel_gradient(self, r:pygame.Vector2, h)->pygame.Vector2:
+        
+        volume = (math.pi * h**4) / 6
+        return (h - distance) * (h - distance) / volume
+        
+        
+    def _kernel_gradient(self, dst, h)->float:
         """Fonction qui retourne la valeur de gradient pour une distance donnée avec un rayon d'influence h
-        Spiky kernel 2d, gradient
 
         Args:
-            r (Vector2): Le vecteur de déplacement de la particule
+            dst (float): La distance entre les particules
             h (int): Le rayon d'influence 
 
         Returns:
-            int: La valeur de gradient
+            float: La valeur de gradient
         """
 
-        term = h - r.length()
-        return self.GRADIENT_FACTOR * (r/r.length()) * (term ** 2)
+        if dst >= h:return 0.0
+        
+        scale = (12/h**4)/6 # Dérivée de la fonction kernel
+        
+        return (h - dst) * scale
 
     def _calculate_densities(self)-> None:
         """Met à jour les densités de chaque particule de la simulation
@@ -174,7 +179,9 @@ class SPHSimulation:
 
             for opp in self.operation:
                 for other in self.spatial_lookup.get((idx[0]+opp[0],idx[1]+opp[1]), []):
-                    distance = particle.position.distance_to(other.position)
+                    diff = particle.position - other.position
+                    distance = diff.length()
+                    
                     particle.density += other.mass * self._kernel(distance, h)
 
             
@@ -193,6 +200,7 @@ class SPHSimulation:
         
         
         for particle in self.particles:
+            particle.reset_acceleration() # Acceleration à 0
             pressure_force = pygame.Vector2(0, 0)
             viscosity_force = pygame.Vector2(0, 0)
 
@@ -204,26 +212,34 @@ class SPHSimulation:
 
                     diff = particle.position - other.position
                     distance = diff.length()
-
-                    if distance < h and distance > 0.001: #Empêche les particules de rentrer en collision totale
-                        # Pressure force
-                        pressure_component = (
-                            -(other.mass * (particle.pressure + other.pressure) /
-                            (2.0 * other.density)) *
-                            self._kernel_gradient(diff, h)
-                        )
+                    
+                    if distance <= 0.001:
+                        pressure_force += pygame.Vector2(randint(-1,1),randint(-1,1))
 
                     
+                    # Pressure force
+                    r = diff.length()
 
-                        pressure_force += pressure_component
+                    if r > 0:
+                        direction = diff / r
+                    else:
+                        direction = pygame.Vector2(0,0)
 
-                        # Viscosity force
-                        velocity_diff = other.velocity - particle.velocity
-                        viscosity_component = (
-                            self.viscosity * other.mass / other.density *
-                            self._kernel(distance, h)
-                        )
-                        viscosity_force += velocity_diff * viscosity_component
+                    pressure_component = (
+                        -(other.mass * (particle.pressure + other.pressure) /
+                        (2.0 * other.density)) *
+                        self._kernel_gradient(r, h)
+                    )
+
+                    pressure_force += pressure_component * direction
+
+                    # Viscosity force
+                    velocity_diff = other.velocity - particle.velocity
+                    viscosity_component = (
+                        self.viscosity * other.mass / other.density *
+                        self._kernel(distance, h)
+                    )
+                    viscosity_force += velocity_diff * viscosity_component
                         
 
 
@@ -233,8 +249,7 @@ class SPHSimulation:
             particle.update(dt, self.gravity)
             particle.velocity *= self.damping
             
-            
-            particle.color[1] = min((255, particle.velocity.length_squared()*0.5))
+
         
         #Remet à 0 le dictionnaire d'optimisation spatiale
         self.spatial_lookup.clear()
@@ -249,10 +264,10 @@ class SPHSimulation:
             self.spatial_lookup[cell].append(particle)
 
 
-    def _boundary_handling(self):
+    def _boundary_handling(self,mouse):
         """Prend en charge les collision des particules entre les bords de la simulation"""
         damping = 0.05
-        border = 10.0
+        border = 20.0 #Offset de la bordure
 
         for particle in self.particles:
             # Gauche
@@ -275,8 +290,10 @@ class SPHSimulation:
                 particle.position.y = self.height - border
                 particle.velocity.y *= -damping
 
+                
+
    
-    def step(self, dt)-> None:
+    def step(self, dt,mouse:tuple)-> None:
         """Execute un step de la simulation"""
         
         
@@ -290,16 +307,31 @@ class SPHSimulation:
         self._calculate_densities()
         self._calculate_pressures()
 
-        # Remet toute les forces et accelerations à 0
-        for particle in self.particles:
-            particle.reset_acceleration()
+
+        #Verifier si le curseur est dans la simulation:
+        if 0 < mouse[0] < self.width and 0 < mouse[1] < self.height:
+            cell = ((int(mouse[0]/self.smoothing_radius),int(mouse[1]/self.smoothing_radius)))
+            mouse_pos = pygame.Vector2(mouse[0],mouse[1])
+            for opp in self.operation:
+                for other in self.spatial_lookup.get((cell[0]+opp[0],cell[1]+opp[1]), []):
+                    diff = other.position - mouse_pos
+                    dst = diff.length()
+                    
+                    if dst <= self.cursor_radius:
+                        if dst <= self.cursor_radius**2:
+                            
+                            if dst > 0:
+                                direction = diff / dst
+                                strength = 100  # tweak this
+                                other.velocity += direction * strength
+                
 
         self._calculate_apply_forces(dt) #Calcule et applique les forces
 
 
 
         # Handle boundaries
-        self._boundary_handling()
+        self._boundary_handling(mouse)
 
 
     def add_particle(self, x, y):

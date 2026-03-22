@@ -2,7 +2,7 @@
 
 import pygame
 from os import path
-from .sph_water import SPHSimulation
+from .sph_water import SPHSimulation, SPHParticle
 from utils import loadAssetsFolder
 
 WINDOW_WIDTH, WINDOW_HEIGHT = WINDOW_SIZE = (1600, 900)
@@ -13,6 +13,10 @@ cam_x = 0
 cam_y = 0
 event_list = []  # Liste des évènements
 l_fps = -1 #fps du dernier tick
+flow_x = (30,60)
+step = 0
+count = 0
+
 
 # On initie les variables qui vont contenir les assets
 background: pygame.Surface = None
@@ -35,19 +39,22 @@ def load() -> None:
 
 
     
-i = 0
+
 
 def init() -> None:
     """
     Initialise/réinitialise le mini-jeu
     """
     
-    global sph_sim
+    global sph_sim, flow_x, step, count
     
     event_list.clear()
-    # Initialise la simulation avec 150 particules
-    sph_sim = SPHSimulation(width=800, height=600, particle_count=150)
+    # Initialise la simulation avec 150 particules en jet d'eau
+    sph_sim = SPHSimulation(width=1600, height=800, particle_count=400)
+    step = int((flow_x[1]-flow_x[0])/SPHParticle().radius-4)
+    count = 150 // step
 
+i = 0
 
 def tick(keys: dict, mouse: dict, fps:float) -> None:
     """
@@ -58,25 +65,36 @@ def tick(keys: dict, mouse: dict, fps:float) -> None:
     :param mouse: Dictionnaire contenant les informations liées à la souris `{'x': int, 'y'; int, 'click': list[int, int, int]}`
     :type mouse: dict
     """
-    global mouse_pos, cam_x, cam_y, sph_sim, l_fps, i
+    global mouse_pos, cam_x, cam_y, sph_sim, l_fps, i, flow_x, world_x, world_y
     
+    mouse_pos_interact = (-1000,-1000)
 
-    
-    if l_fps == -1:
-        fps = 40
+
     l_fps = fps
     
+    """if i < count*3 and i%3 ==0 :
+        for j in range(1,step+1):
+            sph_sim.add_particle((flow_x[0]+i*SPHParticle().radius)+4,0)
+        i += 1"""
     
+    world_x = mouse["x"] + cam_x
+    world_y = mouse["y"] + cam_y
     
     # Si le clic gauche de la souris est pressé, on compare sa position à la précédente pour faire déplacer la caméra
     if mouse["click"][0] > 0:
         cam_x += mouse_pos["x"] - mouse["x"]
         cam_y += mouse_pos["y"] - mouse["y"]
-        # Add water particle at mouse position for interaction
         world_x = mouse["x"] + cam_x
         world_y = mouse["y"] + cam_y
-        if sph_sim and (0 < mouse['x'] < sph_sim.width and 0 < mouse['y'] < sph_sim.height):
-            sph_sim.add_particle(world_x, world_y)
+    
+    if mouse["click"][1] > 0:
+        if len(sph_sim.particles) < 600:
+            if sph_sim and (0 < world_x < sph_sim.width and 0 < world_y < sph_sim.height):
+                sph_sim.add_particle(world_x, world_y)
+            
+    if mouse["click"][2] > 0:
+        mouse_pos_interact = (world_x, world_y)
+        
 
     # Mis à jour de la position de la souris
     mouse_pos["x"], mouse_pos["y"] = mouse["x"], mouse["y"]
@@ -86,14 +104,15 @@ def tick(keys: dict, mouse: dict, fps:float) -> None:
         event_list.append({"type": "pause"})
 
     if i < 10:
-        sph_sim.step(dt=0.0001)  # fps timestep
+        sph_sim.step(dt=1/80, mouse=(-1,-1))  # timestep arbitraire
+        i+=1
     
     # Met à jour la simulation
     if sph_sim:
-        sph_sim.step(dt=(1/(fps+1))) # fps timestep
+        sph_sim.step(dt=(1/(fps+1)), mouse=mouse_pos_interact) # fps timestep
+    
         
     
-    i+=1
 
 
 def display() -> pygame.Surface:
@@ -112,15 +131,16 @@ def display() -> pygame.Surface:
 
         # Afficher les informations
         font = pygame.font.Font(None, 24)
-        text = font.render(f"Particules: {sph_sim.get_particle_count()}", True, (0, 0, 0))
+        text = font.render(f"Particules: {sph_sim.get_particle_count()} (max 600)", True, (0, 0, 0))
         surface.blit(text, (10, 10))
-        help_text = font.render("Cliquez et bouger pour vous déplacer, cliquer ajoute des particules", True, (0, 0, 0))
+        help_text = font.render("Cliquer et bouger pour se déplacer, clique molette ajoute des particules", True, (0, 0, 0))
         surface.blit(help_text, (10, 40))
+        surface.blit(font.render("Clique droit vous permet d'interagir avec les particules", True, (0,0,0)), (10,60))
         
         global l_fps
         
         #afficher les fps
-        surface.blit(font.render(f"FPS: {l_fps}", True, (0,0,0)), (10,60))
+        surface.blit(font.render(f"FPS: {l_fps}", True, (0,0,0)), (10,80))
 
     return surface
 
