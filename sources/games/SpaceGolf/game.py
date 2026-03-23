@@ -117,9 +117,9 @@ def load() -> None:
     earth.addInteraction(worm_hole)
     earth.locked = True  # Tant que la Terre est verrouillée, elle ne subit pas les forces gravitationnelles et ne bouge pas
 
-    level_end = PopUp(surface, WINDOW_WIDTH//2, WINDOW_HEIGHT//2, assets["images"]["popup_background.png"],
-                      {"x": -80, "y": 150, "surface": assets["images"]["popup_button1.png"], "onclick": onClickHome},
-                      {"x": 80, "y": 150, "surface": assets["images"]["popup_button2.png"], "onclick": onClickNext})
+    level_end = PopUp(surface, WINDOW_WIDTH//2, WINDOW_HEIGHT//2, assets["images"]["popup.png"],
+                      {"x": 230, "y": 120, "surface": assets["images"]["home.png"], "onclick": onClickHome},
+                      {"x": -212, "y": 120, "surface": assets["images"]["next.png"], "onclick": onClickNext})
 
     # Une fois les assets chargées on peut créer le RangeInput
     font = assets["fonts"]["inter.ttf"].getFont(24)

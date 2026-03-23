@@ -278,14 +278,21 @@ def main() -> None:
     window_size = (800, 600)
     window = pygame.display.set_mode(window_size, pygame.RESIZABLE)
     pygame.display.set_caption("Physics.play")
-    
-    # Chargement des assets
-    
+
+    # On charge les assets de base (icones et logo)
     assets = {}
-    loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))
-    
+    loadAssetsFolder(assets, path.join(FOLDER_PATH, "preassets"))
+
+    # On affiche une fenêtre de chargement
     pygame.display.set_icon(assets["images"]["icon.png"])
+    window.fill((0, 0, 0))
+    title = assets["images"]["title.png"]
+    window.blit(title, (window_size[0]//2-title.width//2, window_size[1]//2-title.height//2))
+    pygame.display.flip()
     
+    # Chargement du reste des assets
+    loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))
+        
     # Chargement des mini-jeux
     
     games: list[dict] = []
