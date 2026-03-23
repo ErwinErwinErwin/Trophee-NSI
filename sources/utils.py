@@ -78,6 +78,33 @@ def pointCollideMask(mask: pygame.Mask, x: int, y: int) -> bool:
     return result
 
 
+def loadingBar(width: int, height: int, border_width: int, percent: float, color: tuple = (255, 255, 255)) -> pygame.Surface:
+    """
+    Génère une barre de chargement sous forme de surface pygame.
+
+    :param width: Largeur de la barre
+    :type width: int
+    :param height: Hauteur de la barre
+    :type height: int
+    :param border_width: La taille de la bordure de la barre
+    :type border_width: int
+    :param percent: Pourcentage de progression entre 0 et 1
+    :type percent: float
+    :param color: La couleur de la barre de chargement
+    :type color: tuple[int, int, int]
+    :return: Une surface représentant une barre de chargement
+    :rtype: pygame.Surface
+    """
+    width = max(width, height)
+    surface = pygame.Surface((width, height), pygame.SRCALPHA)
+    pygame.draw.rect(surface, color, (0, 0, width, height), border_width, height//2)
+    content_height = height - 4*border_width
+    content_width = width - 4*border_width
+    if content_height > 0 and content_width > 0:
+        pygame.draw.rect(surface, color, (border_width*2, border_width*2, round(content_width*percent), content_height), border_radius=content_height//2)
+    return surface
+
+
 # Définition des class
 
 class LoadedFont:

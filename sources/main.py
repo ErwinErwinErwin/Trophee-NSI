@@ -2,7 +2,8 @@
 
 import pygame
 from os import scandir, path
-from utils import loadAssetsFolder, loadGame, RangeInput
+from utils import loadAssetsFolder, loadGame, RangeInput, loadingBar
+from time import sleep
 
 # Constantes
 
@@ -159,7 +160,7 @@ def playGame(game: dict, window: pygame.Surface, assets: dict) -> bool:
         
 
 
-def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
+def menu(games: list, window: pygame.Surface, assets: dict, ghost_surface: pygame.Surface = None) -> dict | None:
     """
     menu est une fonction bloquante qui affichera le menu des mini-jeux et s'occupera des interactions avec l'utilisateur.
     
@@ -169,6 +170,8 @@ def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
     :type window: pygame.Surface
     :param assets: Les ressources du menu (images, sons et polices)
     :type assets: dict[str, dict | pygame.Surface | pygame.mixer.Sound]
+    :param ghost_surface: Une image qui s'efface rapidemant à l'apparition du menu
+    :type ghost_surface: pygame.Surface | None
     :return: Le jeu sélectionné par l'utilisateur sous forme d'un dictionnaire ou None si l'utilisateur a fermé la fenêtre
     :rtype: dict | None 
     """
@@ -262,6 +265,15 @@ def menu(games: list, window: pygame.Surface, assets: dict) -> dict | None:
         # On ajoute le texte
         title = font.getFont(window.height//8).render(game["config"]["name"], True, (255, 255, 255))
         window.blit(title, (window.width//2-title.width//2, min(140, window.height//6)-title.height//2))
+
+        # Si il y a une surface fantôme on l'affiche par dessus tout le reste
+        if ghost_surface:
+            window.blit(ghost_surface, (window.width//2-ghost_surface.width//2, window.height//2-ghost_surface.height//2))
+            alpha = ghost_surface.get_alpha() - 10
+            if alpha > 0:
+                ghost_surface.set_alpha(alpha)
+            else:
+                ghost_surface = None
         
         pygame.display.flip()  # On actualise la fenêtre
         clock.tick(30)  # Limite la boucle à 30 itérations par seconde
@@ -292,11 +304,19 @@ def main() -> None:
     pygame.display.set_icon(assets["images"]["icon.png"])
     window.fill((0, 0, 0))
     title = assets["images"]["title.png"]
-    window.blit(title, (window_size[0]//2-title.width//2, window_size[1]//2-title.height//2))
+    window.blit(title, (window_size[0]//2-title.width//2, window_size[1]//3-title.height//2))
+
+    # On gère la barre de chargement
+    loading = 0
+    loading_bar_params = lambda: (loadingBar(400, 40, 6, loading / (3 if PRELOAD else 2)), (window_size[0]//2-200, window_size[1]//3*2-20))
+    window.blit(*loading_bar_params())
     pygame.display.flip()
     
     # Chargement du reste des assets
     loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))
+    loading = 1
+    window.blit(*loading_bar_params())
+    pygame.display.flip()
         
     # Chargement des mini-jeux
     
@@ -305,7 +325,9 @@ def main() -> None:
     print()
 
     # On scanne le dossier 'games' et on importe tous les mini-jeux qui remplissent les conditions
-    for element in scandir(path.join(FOLDER_PATH, "games")):
+    scan = tuple(scandir(path.join(FOLDER_PATH, "games")))
+    scan_lenght = len(scan)
+    for element in scan:
         if element.is_dir():
             # On vérifie que tous les fichiers indispensables existent
             if all(path.exists(path.join(element.path, needed_file)) for needed_file in NEEDED_FILES):
@@ -318,23 +340,37 @@ def main() -> None:
             else:
                 print(f"[Erreur] Le dossier '{element.name}' ne contient pas tous les fichiers indispensables")
                 print("[Rappel] les fichiers indispensables sont :", ", ".join(NEEDED_FILES))
+        loading += 1 / scan_lenght
+        window.blit(*loading_bar_params())
+        pygame.display.flip()
 
     if len(games) == 0:
         print("[Erreur] Aucun jeu n'a été chargé : arrêt du programme")
         return
     
     if PRELOAD:
+        games_lenght = len(games)
         for game in games:
             game["load"]()
             game["loaded"] = True
+            loading += 1 / games_lenght
+            window.blit(*loading_bar_params())
+            pygame.display.flip()
 
     print("\nChargement des mini-jeux terminé :", len(games), "mini-jeu(x) chargé(s)")
 
+    # On fait disparaitre graduellement la fenêtre de chargement
+    ghost_surface = window.copy()
+    ghost_surface.set_alpha(255)
+
     while True:
         
-        user_choice = menu(games, window, assets)  # On demande à l'utilisateur de choisir un mini-jeu
+        user_choice = menu(games, window, assets, ghost_surface)  # On demande à l'utilisateur de choisir un mini-jeu
         if user_choice == None:
             break
+
+        if ghost_surface:
+            ghost_surface = None
         
         status = playGame(user_choice, window, assets)  # On fait tourner le mini-jeu et on récupère le status de sortie
         if status:
