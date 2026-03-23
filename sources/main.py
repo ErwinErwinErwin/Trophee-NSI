@@ -4,6 +4,10 @@ import pygame
 from os import scandir, path
 from utils import loadAssetsFolder, loadGame, RangeInput
 
+# Constantes
+
+PRELOAD = True  # On charge les assets de tous les jeux au lancement
+
 # Définition des fonctions
 
 def playGame(game: dict, window: pygame.Surface, assets: dict) -> bool:
@@ -318,6 +322,11 @@ def main() -> None:
     if len(games) == 0:
         print("[Erreur] Aucun jeu n'a été chargé : arrêt du programme")
         return
+    
+    if PRELOAD:
+        for game in games:
+            game["load"]()
+            game["loaded"] = True
 
     print("\nChargement des mini-jeux terminé :", len(games), "mini-jeu(x) chargé(s)")
 
