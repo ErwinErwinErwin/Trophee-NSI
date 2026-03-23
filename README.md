@@ -53,7 +53,7 @@ Pour lancer le programme, il vous suffit d'executer le fichier `./sources/main.p
 ## Auteurs
 Le projet a été réalisé par un groupe de quatres élèves de première, tous passionnés d'informatique.
 
-**Maxime Noé -** Développement du système de gestion des mini-jeux ainsi que des minijeux/sandbox "SpaceGolf" et le "Jeu de la vie"
+**Maxime Noé -** Développement du système de gestion des mini-jeux ainsi que des minijeux/sandbox "SpaceGolf" et le "Jeu de la vie" (ou *Conway's Game of life*)
 
 **Lubin Tschirhart -** Rédaction des documents et documentations du dossier technique, ainsi que le développement la sandbox "WaterBox"
 
@@ -80,7 +80,7 @@ Veuillez trouver ci-dessous une liste des sources et médias consultés pour la 
 - https://github.com/AyB2003/Pygame_Water_Simulator/tree/main : Un exemple d'implémentation de l'algorithme Open-source en python, qui a été utilisé pour mieux appréhender l'implémentation de l'agorithme avec Pygame.
 - https://en.wikipedia.org/wiki/Smoothed-particle_hydrodynamics : Pour une explication plus vulgarisé de certaines equations.
 
-**<u>Conway Game of Life: algorithme du HashLife </u>**\
+**<u>Conway's Game of Life: algorithme du HashLife </u>**\
 Pour ce projet, une source externe a été utilisée pour la compréhension ainsi que la découverte de l'algorithme: https://www.dev-mind.blog/hashlife/
 
 
