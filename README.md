@@ -53,7 +53,7 @@ Pour lancer le programme, il vous suffit d'executer le fichier `./sources/main.p
 ## Auteurs
 Le projet a été réalisé par un groupe de quatres élèves de première, tous passionnés d'informatique.
 
-**Maxime Noé -** Développement du système de gestion des mini-jeux ainsi que des minijeux/sandbox "SpaceGolf" et le "Conway Game of Life"
+**Maxime Noé -** Développement du système de gestion des mini-jeux ainsi que des minijeux/sandbox "SpaceGolf" et le "Jeu de la vie"
 
 **Lubin Tschirhart -** Rédaction des documents et documentations du dossier technique, ainsi que le développement la sandbox "WaterBox"
 
