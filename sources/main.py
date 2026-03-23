@@ -26,6 +26,7 @@ def playGame(game: dict, window: pygame.Surface, assets: dict) -> bool:
     RENDERING_WIDTH = CONFIG["width"]
     RENDERING_HEIGHT = CONFIG["height"]
     FPS = CONFIG.get("FPS", False)
+    FPS_COLOR = CONFIG.get("FPS_input", {})
     KEYS = [getattr(pygame, key, -1) for key in CONFIG["keys"]]  # On passe d'une liste de str (ex : 'K_a') à une liste de constante de pygame (ex : pygame.K_a)
 
     pygame.display.set_caption("Physics.play - " + CONFIG["name"])
@@ -53,7 +54,7 @@ def playGame(game: dict, window: pygame.Surface, assets: dict) -> bool:
 
     # On créé une entrée numérique pour que l'utilisateur puisse gérer ses FPS sur n'importe quel jeu
     font = assets["fonts"]["inter.ttf"].getFont(18)
-    fps_input = RangeInput(20, 30, 140, (5, SPEED), window, lambda value: f"FPS: {value}", font, 8, min(30, SPEED))
+    fps_input = RangeInput(20, 30, 140, (5, SPEED), window, lambda value: f"FPS: {value}", font, 8, min(30, SPEED), **FPS_COLOR)
 
     while True:
 

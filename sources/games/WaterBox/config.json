@@ -8,5 +8,10 @@
     "background_color": [0, 0, 0],
     "window_min_width": 480,
     "window_min_height": 270,
-    "FPS": true
+    "FPS": true,
+    "FPS_input": {
+        "background_color": [80, 40, 40],
+        "color": [140, 70, 70],
+        "title_color": [160, 80, 80]
+    }
 }

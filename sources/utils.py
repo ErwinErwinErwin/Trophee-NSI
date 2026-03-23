@@ -36,6 +36,10 @@ def loadGame(folder: str, folder_path: str) -> dict | None:
     if not all(key in game["config"] for key in NEEDED_KEYS):
         return None
 
+    # On vérifie que la clé optionnelle 'FPS_input' ne contient pas de valeurs erronées
+    if not all(key in ("background_color", "color", "title_color") for key in game["config"].get("FPS_input", {})):
+        return None
+
     # On charge l'arrière-plan affiché dans le menu des mini-jeux
     game["menu_background"] = pygame.image.load(path.join(folder_path, "games", folder, "menu_background.png")).convert()
     
