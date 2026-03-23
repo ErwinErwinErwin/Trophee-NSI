@@ -1,6 +1,8 @@
 # Physics.play
 
-Physics.play est un jeu vidéo qui vous propose de jouer à des mini-jeux ou sandbox pour vous faire découvrir le monde de la physique du quotidien , le tout avec une simulation la plus fidèle possible, utilisant des algorithmes avancés pour vous proposer un résultat balancé entre réalisme et visuel
+Physics.play est un jeu vidéo qui vous propose de jouer à des mini-jeux ou sandbox pour vous faire découvrir le monde de la physique du quotidien,le tout en utilisant des algorithmes avancés pour vous proposer un résultat balancé entre réalisme et visuel. Le but est alors simple: divertir tout en s'appuyant sur la physique naturelle.
+
+L'idée est partie d'un constat, l'équipe était composé de deux passionnés de physique, et deux deux passionnés d'informatique,  le choix a alors été simple !
 
 ---
 
@@ -58,6 +60,31 @@ Le projet a été réalisé par un groupe de quatres élèves de première, tous
 **Line Vacher--Drevet -** Aide  à l'organisation du dossier, réalisations graphiques et aide au design et concept des jeux.
 
 **Erwan Goasdoue -** Supervision graphique du projet, aide au design, et responsable des tests.
+
+## Note: Utilisation de l'IA
+Nous pensons que les intelligences artificielles peuvent être bénéfique lorsqu'elles sont utilisées de manière cohérentes et réfléchies, nous avons alors modéré nos usages, et les avons restreint à des utilisations qui ne touchent pas à une implémentation directe dans le code fournis dans le projet fini.
+
+Tout le code et les documentation sont écrits par nos soins, seul les algorithme sont inspirés de travaux de recherches réalisés par des auteurs externes, voir la section ci dessous.
+
+**<u>WaterBox: algorithme SPH</u>**\
+Plusieurs modèles d'IA (dont Claude et GPT 5) ont été utilisés pour les recherches uniquement théoriques sur l'algorithme, ainsi que pour une fonction explicative de certains articles cités ci-dessous.
+
+Le code en lui même n'a pas été généré par IA, il est néanmoins à noter pour la transparence que une implémentation de kernels avancés à été en partie générée par IA pour la compréhension du fonctionnement de cet algorithme, ce code a bien entendu été utilisé dans un but de test et n'a pas été transféré de quelconque manière dans le projet final.
+
+**Sources externes**\
+Veuillez trouver ci-dessous une liste des sources et médias consultés pour la réalisation de cette partie du projet.
+
+- https://sph-tutorial.physics-simulation.org/pdf/SPH_Tutorial.pdf : Un article très avancé qui a été très bénéfique pour comprendre le fond de l'algorithme et ses enjeux.
+- https://www.youtube.com/watch?v=rSKMYc1CQHE&t=486s : Une vidéo qui détail une implémentation de l'algorithme, c'est celle ci qui a initialement donnée l'idée d'utiliser cet algorithme, ainsi que les formules des kernel utilisés.
+- https://deepwiki.com/yuki-koyama/position-based-fluids/1-position-based-fluids-overview : La documentation d'un algorithme alternatif qui a tout de même été bénéfique au projet.
+- https://github.com/AyB2003/Pygame_Water_Simulator/tree/main : Un exemple d'implémentation de l'algorithme Open-source en python, qui a été utilisé pour mieux appréhender l'implémentation de l'agorithme avec Pygame.
+- https://en.wikipedia.org/wiki/Smoothed-particle_hydrodynamics : Pour une explication plus vulgarisé de certaines equations.
+
+**<u>Conway Game of Life: algorithme du HashLife </u>**\
+Pour ce projet, une source externe a été utilisée pour la compréhension ainsi que la découverte de l'algorithme: https://www.dev-mind.blog/hashlife/
+
+
+
 
 ## 🔏 License
 
