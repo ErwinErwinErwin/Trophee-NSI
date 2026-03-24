@@ -25,9 +25,7 @@ earth: Earth = None  # La planète Terre, initialisée dans la fonction load
 suns: list[GraphicalCelestialBody] = []
 black_holes: list[GraphicalCelestialBody] = []
 worm_hole: GraphicalCelestialBody = None
-launched = False
 launching = False
-launch_start = None
 launch_speed = Vector()
 zoom_input: RangeInput = None
 time_input: RangeInput = None
@@ -35,6 +33,8 @@ level_end: PopUp = None
 background: pygame.Surface = None
 celestial_bodies: dict[str, pygame.Surface | SpriteSheet] = {}
 levels: list[dict] = None
+max_trials = None
+trials = None
 
 # On définit les fonctions secondaires
 
@@ -75,9 +75,11 @@ def loadLevel(index: int) -> None:
     :param index: Index du niveau commençant à 0
     :type index: int
     """
-    global cam_x, cam_y
+    global cam_x, cam_y, max_trials, trials, launching
     cam_x = cam_y = 0
     level = levels[index]
+    max_trials = trials = level["trials"]
+    launching = False
 
     earth.reset()
     earth.other_bodies.clear()
@@ -175,11 +177,7 @@ def init() -> None:
     """
     Initialise/réinitialise le mini-jeu
     """
-    global launched, launching
     loadLevel(0)
-    launched = False
-    launching = False
-    launch_speed.magnitude = 0
     event_list.clear()
     level_end.displayed = False
     zoom_input.value = 100000
@@ -195,7 +193,7 @@ def tick(keys: dict, mouse: dict) -> None:
     :param mouse: Dictionnaire contenant les informations liées à la souris `{'x': int, 'y'; int, 'click': list[int, int, int]}`
     :type mouse: dict
     """
-    global mouse_pos, cam_x, cam_y, launch_start, launching, launched, scale, time_scale
+    global mouse_pos, cam_x, cam_y, launching, scale, time_scale, trials
 
     mouse_click = mouse["click"][0]  # On utilise une variable temporaire pour pouvoir stopper la propagation d'un clic si celui-ci est intercepté par un bouton
 
@@ -212,16 +210,17 @@ def tick(keys: dict, mouse: dict) -> None:
     if zoom_input.clicked or time_input.clicked:
         mouse_click = 0
 
-    if not launched:
+    if trials > 0:
         if launching:
-            launch_speed.coordinates = launch_start[0] - mouse["x"], launch_start[1] - mouse["y"]
+            earth_x, earth_y = screenPosition(earth.x, earth.y)
+            launch_speed.coordinates = earth_x - mouse["x"], earth_y - mouse["y"]
             if mouse_click == 0:
-                # launched = True
                 launching = False
                 earth.speed.direction = launch_speed.direction
                 # On convertit la distance du lancement en une vitesse de lancement en m/s avec l'échelle suivante : 7500 m = 1 m/s
                 earth.speed.magnitude = launch_speed.magnitude * scale / 7500
                 earth.locked = False
+                trials -= 1
         else:
             # La souris vient dêtre cliquée
             if mouse_click == 1:
@@ -231,7 +230,6 @@ def tick(keys: dict, mouse: dict) -> None:
                     earth.stop()
                     launching = True
                     earth.locked = True
-                    launch_start = mouse["x"], mouse["y"]
                     mouse_click = 0
 
     # Si le clic gauche de la souris est pressé, on compare sa position à la précédente pour faire déplacer la caméra
@@ -270,7 +268,7 @@ def display() -> pygame.Surface:
             surface.blit(background, (x, y))
 
     if launching:
-        pygame.draw.line(surface, (255, 0, 0), launch_start, (mouse_pos["x"], mouse_pos["y"]), 3)
+        pygame.draw.line(surface, (255, 0, 0), screenPosition(earth.x, earth.y), (mouse_pos["x"], mouse_pos["y"]), 4)
     
     # On ajoute la planète Terre, les soleils, le trou de ver et les trous noirs
     for sun in suns:
