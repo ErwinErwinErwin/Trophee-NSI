@@ -2,8 +2,15 @@
 
 import pygame
 from os import scandir, path
+from sys import exit
+
+# pygame et pygame-ce utilisent le même nom de module et de dossier, cette sécurité permet d'éviter des erreurs inexpliquées plus tard
+if not hasattr(pygame.Surface, "width"):
+    print("\n[Erreur] Vous utilisez la version régulière de pygame au lieu de pygame-ce")
+    print("Désinstallez pygame et pygame-ce puis réinstallez pygame-ce\n")
+    exit()
+
 from utils import loadAssetsFolder, loadGame, RangeInput, loadingBar
-from time import sleep
 
 # Constantes
 
