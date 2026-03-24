@@ -5,6 +5,14 @@
             [1.5e8, 0, 1e26, 7e7, 0]
         ],
         "black_holes": [],
-        "trials": 1 
+        "trials": 3
+    },
+    {
+        "worm_hole": [3e8, 0],
+        "suns": [
+            [1.5e8, 0, 1e26, 7e7, 1]
+        ],
+        "black_holes": [],
+        "trials": 1
     }
 ]

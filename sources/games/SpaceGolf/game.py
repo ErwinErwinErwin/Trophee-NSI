@@ -3,7 +3,7 @@
 import pygame
 from os import path
 from .physics import Vector, GraphicalCelestialBody, Earth
-from utils import loadAssetsFolder, RangeInput, PopUp, SpriteSheet, Button
+from utils import loadAssetsFolder, RangeInput, PopUp, SpriteSheet, Button, LoadedFont
 
 WINDOW_WIDTH, WINDOW_HEIGHT = WINDOW_SIZE = (1600, 900)
 FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
@@ -33,8 +33,13 @@ level_end: PopUp = None
 background: pygame.Surface = None
 celestial_bodies: dict[str, pygame.Surface | SpriteSheet] = {}
 levels: list[dict] = None
+level = 0
 max_trials = None
 trials = None
+fonts: LoadedFont = None
+restart_button: Button = None
+previous_button: Button = None
+next_button: Button = None
 
 # On définit les fonctions secondaires
 
@@ -108,6 +113,9 @@ def load() -> None:
     """
     La fonction load charge les assets.
     """
+
+    # On définit les fonctions qui vont servir de callback dans les boutons
+
     def convertTime(value: int) -> str:
         if value >= 3600:
             return f"1s : {value//3600}h {(value%3600)//60}min"
@@ -131,10 +139,24 @@ def load() -> None:
         event_list.append({"type": "quit"})
     
     def onClickNext() -> None:
+        global level
+        level = min(level + 1, len(levels) - 1)
         level_end.displayed = False
+        loadLevel(level)
+
+    def onClickPrevious() -> None:
+        global level
+        level = max(level - 1, 0)
+        level_end.displayed = False
+        loadLevel(level)
+    
+    def onClickRestart() -> None:
+        global cam_x, cam_y, trials
+        cam_x = cam_y = 0
+        trials = max_trials
         earth.reset()
     
-    global background, zoom_input, time_input, earth, worm_hole, level_end, assets, levels
+    global background, zoom_input, time_input, earth, worm_hole, level_end, assets, levels, fonts, restart_button, previous_button, next_button
     
     assets = {}
     loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
@@ -168,15 +190,23 @@ def load() -> None:
                       Button(-212, 120, assets["images"]["next.png"], onClickNext))
 
     # Une fois les assets chargées on peut créer le RangeInput
-    font = assets["fonts"]["inter.ttf"].getFont(24)
+    fonts = assets["fonts"]["inter.ttf"]
+    font = fonts.getFont(24)
     zoom_input = RangeInput(36, WINDOW_HEIGHT-36, 160, (50000, 500000, 10000), surface, convertDistance, font, 12, 100000)
     time_input = RangeInput(230, WINDOW_HEIGHT-36, 160, (600, 14400, 600), surface, convertTime, font, 12, 5400)
+
+    # On créé les boutons cliquables
+    restart_button = Button(WINDOW_WIDTH//2, 30, assets["images"]["restart.png"], onClickRestart)
+    previous_button = Button(WINDOW_WIDTH//2 - 60, 30, assets["images"]["previous_button.png"], onClickPrevious)
+    next_button = Button(WINDOW_WIDTH//2 + 60, 30, assets["images"]["next_button.png"], onClickNext)
 
 
 def init() -> None:
     """
     Initialise/réinitialise le mini-jeu
     """
+    global level
+    level = 0
     loadLevel(0)
     event_list.clear()
     level_end.displayed = False
@@ -208,6 +238,12 @@ def tick(keys: dict, mouse: dict) -> None:
     time_input.tick((mouse["x"], mouse["y"]), mouse_click)
     time_scale = time_input.value
     if zoom_input.clicked or time_input.clicked:
+        mouse_click = 0
+    
+    param = (mouse["x"], mouse["y"], mouse_click)
+    if any((restart_button.tick(*param),
+           previous_button.tick(*param),
+           next_button.tick(*param))):
         mouse_click = 0
 
     if trials > 0:
@@ -282,6 +318,15 @@ def display() -> pygame.Surface:
     # On affiche les boutons
     zoom_input.display()
     time_input.display()
+
+    restart_button.display(surface)
+    previous_button.display(surface)
+    next_button.display(surface)
+
+    # On affiche le nombre d'essais restants
+    font = fonts.getFont(26)
+    text = font.render(f"Essais restants : {trials} sur {max_trials}", True, (255, 255, 255))
+    surface.blit(text, (36, WINDOW_HEIGHT - text.height - 85))
 
     # On affiche les pop-up
     if level_end.displayed:
