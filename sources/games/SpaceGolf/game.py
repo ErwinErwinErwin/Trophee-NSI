@@ -3,7 +3,7 @@
 import pygame
 from os import path
 from .physics import Vector, GraphicalCelestialBody, Earth
-from utils import loadAssetsFolder, RangeInput, PopUp
+from utils import loadAssetsFolder, RangeInput, PopUp, SpriteSheet, Button
 
 WINDOW_WIDTH, WINDOW_HEIGHT = WINDOW_SIZE = (1600, 900)
 FOLDER_PATH = path.dirname(__file__)  # Chemin absolu du dossier contenant ce script
@@ -20,8 +20,10 @@ surface = pygame.Surface(WINDOW_SIZE)  # La surface utilisée dans la fonction d
 # Préciser le type de la variable est facultatif mais permet à l'éditeur de code de proposer l'auto-complétion
 # Les variables initialisées à None sont des variables globales qui seront initialisées dans la fonction load
 
+assets: dict = None
 earth: Earth = None  # La planète Terre, initialisée dans la fonction load
-sun: GraphicalCelestialBody = None
+suns: list[GraphicalCelestialBody] = []
+black_holes: list[GraphicalCelestialBody] = []
 worm_hole: GraphicalCelestialBody = None
 launched = False
 launching = False
@@ -30,9 +32,9 @@ launch_speed = Vector()
 zoom_input: RangeInput = None
 time_input: RangeInput = None
 level_end: PopUp = None
-
-# On initialise les variables qui vont contenir les assets
 background: pygame.Surface = None
+celestial_bodies: dict[str, pygame.Surface | SpriteSheet] = {}
+levels: list[dict] = None
 
 # On définit les fonctions secondaires
 
@@ -64,6 +66,39 @@ def screenPosition(x: int, y: int) -> tuple:
     :rtype: tuple[int, int]
     """
     return WINDOW_WIDTH//2-cam_x+x//scale, WINDOW_HEIGHT//2-cam_y+y//scale
+
+
+def loadLevel(index: int) -> None:
+    """
+    Charge le niveau correspondant au paramètre index.
+
+    :param index: Index du niveau commençant à 0
+    :type index: int
+    """
+    global cam_x, cam_y
+    cam_x = cam_y = 0
+    level = levels[index]
+
+    earth.reset()
+    earth.other_bodies.clear()
+    earth.addInteraction(worm_hole)
+
+    wx, wy = level["worm_hole"]
+    worm_hole.x = wx
+    worm_hole.y = wy
+    
+    suns.clear()
+    for x, y, mass, radius, costume in level["suns"]:
+        sun = GraphicalCelestialBody(x, y, mass, radius, celestial_bodies["suns"][costume], surface, screenPosition)
+        earth.addInteraction(sun)
+        suns.append(sun)
+    
+    black_holes.clear()
+    for x, y, mass, radius, costume in level["black_holes"]:
+        black_hole = GraphicalCelestialBody(x, y, mass, radius, celestial_bodies["black_holes"][costume], surface, screenPosition, True)
+        earth.addInteraction(black_hole)
+        black_holes.append(black_hole)
+    
 
 # On définit les 5 fonctions principales
 
@@ -97,29 +132,38 @@ def load() -> None:
         level_end.displayed = False
         earth.reset()
     
-    global background, zoom_input, time_input, earth, sun, worm_hole, level_end
+    global background, zoom_input, time_input, earth, worm_hole, level_end, assets, levels
     
     assets = {}
     loadAssetsFolder(assets, path.join(FOLDER_PATH, "assets"))  # On utilise la fonction utilitaire loadAssetsFolder définie dans sources/utils.py
+    levels = assets["json"]["levels.json"]
+
+    # On charge les soleils
+    suns = []
+    celestial_bodies["suns"] = suns
+    suns.append(assets["images"]["sun1[SPRITESHEET;500;10].png"])
+    suns.append(assets["images"]["sun2[SPRITESHEET;465;10].png"])
+    suns.append(assets["images"]["sun3[SPRITESHEET;333;10].png"])
+    suns.append(assets["images"]["sun4[SPRITESHEET;156;10].png"])
+
+    # On charge le trou de ver
+    celestial_bodies["worm_hole"] = assets["images"]["worm_hole[SPRITESHEET;400;20].png"]
+
+    # On charge le trou noir
+    celestial_bodies["black_holes"] = [assets["images"]["black_hole[SPRITESHEET;498;30].png"]]
+
+    # On créé le trou de ver
+    worm_hole = GraphicalCelestialBody(0, 0, 1e33, 2e7, celestial_bodies["worm_hole"], surface, screenPosition, True)
     
-    earth_image = assets["images"]["earth.png"]
+    # On créé la Terre
+    earth = Earth(0, 0, assets["images"]["earth.png"], surface, screenPosition, worm_hole)
+
+    # On charge le fond
     background = assets["images"]["space.png"]
-    sun_spritesheet = assets["images"]["sun[SPRITESHEET;500].png"]
-    sun_spritesheet.animation_speed = 10
-    worm_hole_spritesheet = assets["images"]["worm_hole[SPRITESHEET;400].png"]
-    worm_hole_spritesheet.animation_speed = 20
-
-    sun = GraphicalCelestialBody(1.5e8, 0, 1e26, 7e7, sun_spritesheet, surface, screenPosition)
-    worm_hole = GraphicalCelestialBody(3e8, 0, 1e33, 2e7, worm_hole_spritesheet, surface, screenPosition, True)
-    earth = Earth(0, 0, earth_image, surface, screenPosition, worm_hole)
-
-    earth.addInteraction(sun)
-    earth.addInteraction(worm_hole)
-    earth.locked = True  # Tant que la Terre est verrouillée, elle ne subit pas les forces gravitationnelles et ne bouge pas
 
     level_end = PopUp(surface, WINDOW_WIDTH//2, WINDOW_HEIGHT//2, assets["images"]["popup.png"],
-                      {"x": 230, "y": 120, "surface": assets["images"]["home.png"], "onclick": onClickHome},
-                      {"x": -212, "y": 120, "surface": assets["images"]["next.png"], "onclick": onClickNext})
+                      Button(230, 120, assets["images"]["home.png"], onClickHome),
+                      Button(-212, 120, assets["images"]["next.png"], onClickNext))
 
     # Une fois les assets chargées on peut créer le RangeInput
     font = assets["fonts"]["inter.ttf"].getFont(24)
@@ -131,13 +175,12 @@ def init() -> None:
     """
     Initialise/réinitialise le mini-jeu
     """
-    global launched, launching, cam_x, cam_y
-    earth.reset()
+    global launched, launching
+    loadLevel(0)
     launched = False
     launching = False
     launch_speed.magnitude = 0
     event_list.clear()
-    cam_x = cam_y = 0
     level_end.displayed = False
     zoom_input.value = 100000
     time_input.value = 5400
@@ -229,8 +272,11 @@ def display() -> pygame.Surface:
     if launching:
         pygame.draw.line(surface, (255, 0, 0), launch_start, (mouse_pos["x"], mouse_pos["y"]), 3)
     
-    # On ajoute la planète Terre et le Soleil
-    sun.display(scale)
+    # On ajoute la planète Terre, les soleils, le trou de ver et les trous noirs
+    for sun in suns:
+        sun.display(scale)
+    for black_hole in black_holes:
+        black_hole.display(scale)
     worm_hole.display(scale)
     if not earth.fallen:
         earth.display(scale)

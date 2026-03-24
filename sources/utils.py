@@ -10,8 +10,9 @@ import pygame
 from typing import Callable
 from time import time
 from re import search
+from json import load
 
-# Fonctions uniquement utilisées par le script main.py
+# Définitions des fonctions
 
 def loadGame(folder: str, folder_path: str) -> dict | None:
     """
@@ -103,6 +104,60 @@ def loadingBar(width: int, height: int, border_width: int, percent: float, color
     if content_height > 0 and content_width > 0:
         pygame.draw.rect(surface, color, (border_width*2, border_width*2, round(content_width*percent), content_height), border_radius=content_height//2)
     return surface
+
+
+def loadAssetsFolder(assets: dict, folder_path: str) -> None:
+    """
+    loadAssetsFolder va scanner récursivement tous les sous dossiers de dossier passé en paramètre 
+    et charger toutes les images, les sons, les polices, les feuilles de sprite et les fichier JSON qui s'y trouvent.
+    
+    :param assets: Le dictionnaire qui va contenir l'arborescence du dossier scanné, les sous dossiers 
+        étant des dictionnaires, les images des objets pygame.Surface, les sons des objets pygame.mixer.Sound, 
+        les polices des objets utils.LoadedFont et les feuilles de sprite des objets utils.SpriteSheet
+    :type assets: dict
+    :param folder_path: Chemin du dossier à scanner
+    :type folder_path: str
+    """
+    for element in scandir(folder_path):
+        if element.is_dir():
+            # On créé un nouveau dictionnaire dans le précédent pour représenter le sous dossier puis la fonction s'appelle elle même sur ce sous dossier
+            assets[element.name] = {}
+            loadAssetsFolder(assets[element.name], element.path)
+        else:
+            format = path.splitext(element.name)[1]
+            if format in (".bmp", ".jpeg", ".jpg", ".png", ".svg", ".webp"):
+                try:
+                    img = pygame.image.load(element.path)
+                    # Les méthodes convert et convert_alpha servent à optimiser l'image afin de l'estampiller plus rapidement
+                    if img.get_alpha() != None:  # L'image possède de la transparence
+                        img = img.convert_alpha()
+                    else:
+                        img = img.convert()
+                    match = search(r"\[SPRITESHEET;(\d+);(\d+)\]", element.name)
+                    if match:
+                        width = int(match.group(1))
+                        animation_speed = int(match.group(2))
+                        assets[element.name] = SpriteSheet(img, width, animation_speed)
+                    else:
+                        assets[element.name] = img
+                except:
+                    print(f"[Erreur] Impossible de charger l'image '{element.path}'")
+            elif format in (".mp3", ".wav", ".ogg"):
+                try:
+                    assets[element.name] = pygame.mixer.Sound(element.path)
+                except:
+                    print(f"[Erreur] Impossible de charger l'image '{element.path}'")
+            elif format == ".ttf":
+                try:
+                    assets[element.name] = LoadedFont(element.path)
+                except:
+                    print(f"[Erreur] Impossible de charger la police '{element.path}'")
+            elif format == ".json":
+                try:
+                    with open(element.path, "r") as f:
+                        assets[element.name] = load(f)
+                except:
+                    print(f"[Erreur] Impossible de charger le fichier JSON '{element.path}'")
 
 
 # Définition des class
@@ -290,58 +345,73 @@ class RangeInput:
         self.surface.blit(title, (self.x +self.width//2-title.width//2, self.y-title.height-self.title_gap_y))
 
 
-# Fonctions utilitaires disponibles pour les mini-jeux
+class Button:
 
-def loadAssetsFolder(assets: dict, folder_path: str) -> None:
-    """
-    loadAssetsFolder va scanner récursivement tous les sous dossiers de dossier passé en paramètre 
-    et charger toutes les images, les sons, les polices et les feuilles de sprite qui s'y trouvent.
+    def __init__(self, x: int, y: int, image: pygame.Surface, onclick: Callable[[], None], window: pygame.Surface = None):
+        """
+        La class Button permet de créer facilement des boutons. 
+        Après l'initialisation, il suffit d'appeler régulièrement 'tick' 
+        pour que le bouton soit réactif et 'display' pour l'afficher.
+
+        :param x: Abscisse du centre du bouton
+        :type x: int
+        :param y: Ordonnée du centre du bouton
+        :type y: int
+        :param image: L'image du bouton
+        :type image: pygame.Surface
+        :param onclick: La fonction qui sera appelée quand la souris cliquera sur le bouton
+        :type onclick: Callable[[], None]
+        :param window: La surface sur laquelle sera dessinée le bouton, si elle vaut None elle doit être passée en paramètre de display
+        :type window: pygame.Surface | None
+        """
+        self. x = x
+        self.y = y
+        self.mouseover = False
+        self.image = image
+        self.onclick = onclick
+        self.window = window
+        self.mask = pygame.mask.from_surface(image)
+        highlight = self.mask.to_surface(setcolor=(255, 255, 255, 25), unsetcolor=(0, 0, 0, 0))
+        self.highlighted = self.image.copy()
+        self.highlighted.blit(highlight, (0, 0))
     
-    :param assets: Le dictionnaire qui va contenir l'arborescence du dossier scanné, les sous dossiers 
-        étant des dictionnaires, les images des objets pygame.Surface, les sons des objets pygame.mixer.Sound, 
-        les polices des objets utils.LoadedFont et les feuilles de sprite des objets utils.SpriteSheet
-    :type assets: dict
-    :param folder_path: Chemin du dossier à scanner
-    :type folder_path: str
-    """
-    for element in scandir(folder_path):
-        if element.is_dir():
-            # On créé un nouveau dictionnaire dans le précédent pour représenter le sous dossier puis la fonction s'appelle elle même sur ce sous dossier
-            assets[element.name] = {}
-            loadAssetsFolder(assets[element.name], element.path)
-        else:
-            format = path.splitext(element.name)[1]
-            if format in (".bmp", ".jpeg", ".jpg", ".png", ".svg", ".webp"):
-                try:
-                    img = pygame.image.load(element.path)
-                    # Les méthodes convert et convert_alpha servent à optimiser l'image afin de l'estampiller plus rapidement
-                    if img.get_alpha() != None:  # L'image possède de la transparence
-                        img = img.convert_alpha()
-                    else:
-                        img = img.convert()
-                    match = search(r"\[SPRITESHEET;(\d+)\]", element.name)
-                    if match:
-                        width = int(match.group(1))
-                        assets[element.name] = SpriteSheet(img, width)
-                    else:
-                        assets[element.name] = img
-                except:
-                    print(f"[Erreur] Impossible de charger l'image '{element.path}'")
-            elif format in (".mp3", ".wav", ".ogg"):
-                try:
-                    assets[element.name] = pygame.mixer.Sound(element.path)
-                except:
-                    print(f"[Erreur] Impossible de charger l'image '{element.path}'")
-            elif format == ".ttf":
-                try:
-                    assets[element.name] = LoadedFont(element.path)
-                except:
-                    print(f"[Erreur] Impossible de charger la police '{element.path}'")
+    def tick(self, mouse_x: int, mouse_y: int, click_duration: int) -> bool:
+        """
+        La fonction tick doit être appelée régulièrement afin que le bouton
+        soit fonctionnel pour l'utilisateur.
+
+        :param mouse_x: Abscisse de la souris
+        :type mouse_x: int
+        :param mouse_y: Ordonnée de la souris
+        :type mouse_y: int
+        :param click_duration: Durée du clic de la souris
+        :type click_duration: int
+        :return: True si l'utilisateur a cliqué sur le bouton, sinon False
+        :rtype: bool
+        """
+        surface = self.image
+        self.mouseover = pointCollideMask(self.mask, mouse_x-self.x+surface.width//2, mouse_y-self.y+surface.height//2)
+        if self.mouseover and click_duration == 1:
+            self.onclick()
+            return True
+        return False
+
+    def display(self, window: pygame.Surface = None) -> None:
+        """
+        Affiche le bouton.
+
+        :param window: Surface sur laquelle est affichée le bouton, si elle vaut None la surface donnée à l'initialisation est utilisée
+        :type window: pygame.Surface | None
+        """
+        surface = self.highlighted if self.mouseover else self.image
+        if window == None:
+            window = self.window
+        window.blit(surface, (self.x-surface.width//2, self.y-surface.height//2))
 
 
 class PopUp:
 
-    def __init__(self, window: pygame.Surface, x: int, y: int, background: pygame.Surface, *buttons: dict[str, int | pygame.Surface | Callable[[], None]]):
+    def __init__(self, window: pygame.Surface, x: int, y: int, background: pygame.Surface, *buttons: Button):
         """
         La class PopUp permet de créer facilement de petites fenêtres avec des boutons. 
         Après l'initialisation, il suffit d'appeler régulièrement 'tick' pour que les 
@@ -356,20 +426,17 @@ class PopUp:
         :param background: Le fond de la pop-up
         :type background: pygame.Surface
         :param buttons: Les boutons qui vont être affichés sur la pop-up, les coordonnées sont relatives au centre de la pop-up
-        :type buttons: dict: {'x': int, 'y': int, 'surface': pygame.Surface, 'onclick': function}
+        :type buttons: Button
         """
         self.window = window
         self.x = x
         self.y = y
         self.background = background
         self.buttons = buttons
-        self.background_mask = pygame.mask.from_surface(self.background)
         for button in self.buttons:
-            button["mouseover"] = False
-            button["mask"] = pygame.mask.from_surface(button["surface"])
-            highlight = button["mask"].to_surface(setcolor=(255, 255, 255, 25), unsetcolor=(0, 0, 0, 0))
-            button["highlighted"] = button["surface"].copy()
-            button["highlighted"].blit(highlight, (0, 0))
+            button.x += self.x
+            button.y += self.y
+        self.background_mask = pygame.mask.from_surface(self.background)
         self.displayed = False  # N'est pas utilisé dans la class mais peut servir au développeur plutôt que de créer une variable
     
     def tick(self, mouse_x: int, mouse_y: int, click_duration: int) -> bool:
@@ -389,11 +456,8 @@ class PopUp:
         intercepted = click_duration > 0 and pointCollideMask(self.background_mask, mouse_x+self.background.width//2-self.x, mouse_y+self.background.height//2-self.y)
 
         for button in self.buttons:
-            surface = button["surface"]
-            button["mouseover"] = pointCollideMask(button["mask"], mouse_x-button["x"]+surface.width//2-self.x, mouse_y-button["y"]+surface.height//2-self.y)
-            if button["mouseover"] and click_duration == 1:
+            if button.tick(mouse_x, mouse_y, click_duration):
                 intercepted = True
-                button["onclick"]()
         
         return intercepted
     
@@ -404,5 +468,4 @@ class PopUp:
         """
         self.window.blit(self.background, (self.x - self.background.width//2, self.y - self.background.height//2))
         for button in self.buttons:
-            surface = button["highlighted"] if button["mouseover"] else button["surface"]
-            self.window.blit(surface, (self.x+button["x"]-surface.width//2, self.y+button["y"]-surface.height//2))
+            button.display(self.window)
