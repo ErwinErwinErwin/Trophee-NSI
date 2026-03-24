@@ -27,7 +27,7 @@ Ces recommendations sont basées sur l'idée de pouvoir faire tourner la simulat
 ### Installation
 Pour le bon fonctionnement du programme, plusieurs librairies sont nécessaires, pour les installer, deux scripts sont fournis;
 
-🐧**Debian (ou debian-based distros)**\
+🐧**Debian (ou debian-based distros)**
 -> Bash/ZSH: `chmod +x install.sh && ./install.sh`\
 
 -> Fish: `chmod +x install.fish && ./install.fish`\
