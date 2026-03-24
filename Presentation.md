@@ -41,7 +41,7 @@ Pour ce qui est des rôles plus généraux de chacun, les voici:
 
 **Line Vacher--Drevet -** Aide à l'organisation du dossier, réalisations graphiques, aide au design et concept des jeux, ainsi qu'une aide sur le development de la sandbox "WaterBox"
 
-**Erwan Goasdoue -** Supervision graphique du projet, aide au design, responsable des tests, et assistance au dévelopement du jeu "SpaceGolf".
+**Erwan Goasdoué -** Supervision graphique du projet, aide au design, responsable des tests, et assistance au dévelopement du jeu "SpaceGolf".
 
 
 ## Validation de l’opérationnalité et du fonctionnement 
